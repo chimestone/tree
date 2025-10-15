@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>师徒关系树</title>
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
     <style>
         body {
             margin: 0;
@@ -32,6 +31,7 @@
             border: 1px solid #ddd;
             border-radius: 4px;
             overflow: auto;
+            text-align: center;
         }
         .controls {
             text-align: center;
@@ -49,6 +49,11 @@
         button:hover {
             background: #0056b3;
         }
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -60,7 +65,8 @@
             <button onclick="resetZoom()">重置</button>
         </div>
         <div id="mermaid-diagram">
-            <pre class="mermaid">
+            <div class="loading">正在加载图表...</div>
+            <div class="mermaid" style="display:none;">
 flowchart TD
     %% ========== 根节点 ==========
     Total[师徒关系树] --> A1[李诗俊]
@@ -267,21 +273,42 @@ flowchart TD
     class D1-2-2-1,D1-2-3-1,D1-2-3-2,D1-2-3-3,D3-1-1-1,D5-1-1-1,D5-1-1-2,D5-1-1-3,D5-1-2-1,D5-1-4,D5-1-4-2,D5-1-4-3,D5-3-1-1,D5-3-1-2,D5-3-1-3,D7-1-2-1,D7-1-2-2,D7-1-2-3,D9-2-1-1,D9-2-1-2,D9-2-2-1,D10-1-1-1,D10-1-1-2,D10-1-1-3,D10-1-3-1,D10-1-3-2,D10-1-3-3 dClass
     class E1-2-3-1-1,E1-2-3-1-2,E1-2-3-3-1,E1-2-3-3-2,E1-2-3-3-3,E5-1-2-1-1,E5-1-2-1-2,E5-1-2-1-3,E5-3-1-1-1,E5-3-1-3-1,E7-1-2-1-1,E7-1-2-1-2,E7-1-2-1-3,E9-2-1-1-1,E9-2-1-1-2,E9-2-1-1-3,E10-1-3-1-1,E10-1-3-1-2,E10-1-3-1-3,E10-1-3-2-1,E10-1-3-2-2,E10-1-3-2-3,E10-1-3-3-1,E10-1-3-3-2 eClass
     class F1-2-3-1-1-1,F1-2-3-1-1-2,F1-2-3-1-1-3,F1-2-3-1-2-1,F1-2-3-1-2-2,F1-2-3-1-2-3,F1-2-3-3-2-1,F1-2-3-3-2-2,F1-2-3-3-2-3,F5-3-1-1-1-1,F5-3-1-1-1-2,F5-3-1-3-1-1,F5-3-1-3-1-2,F7-1-2-1-2-1,F7-1-2-1-2-2,F9-2-1-1-1-1,F9-2-1-1-1-2,F9-2-1-1-1-3 fClass
-            </pre>
+            </div>
         </div>
     </div>
 
+    <script src="https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js"></script>
     <script>
         let currentZoom = 1;
         
-        mermaid.initialize({
-            startOnLoad: true,
-            theme: 'default',
-            flowchart: {
-                useMaxWidth: false,
-                htmlLabels: true
+        function initMermaid() {
+            try {
+                mermaid.initialize({
+                    startOnLoad: false,
+                    theme: 'default',
+                    securityLevel: 'loose',
+                    flowchart: {
+                        useMaxWidth: false,
+                        htmlLabels: true
+                    }
+                });
+                
+                const element = document.querySelector('.mermaid');
+                const loading = document.querySelector('.loading');
+                
+                if (element && loading) {
+                    loading.style.display = 'none';
+                    element.style.display = 'block';
+                    
+                    mermaid.init(undefined, element).then(() => {
+                        setTimeout(applyZoom, 500);
+                    });
+                }
+            } catch (error) {
+                console.error('Mermaid initialization failed:', error);
+                document.querySelector('.loading').innerHTML = '图表加载失败，请刷新页面重试';
             }
-        });
+        }
 
         function zoomIn() {
             currentZoom += 0.2;
@@ -306,10 +333,12 @@ flowchart TD
             }
         }
 
-        // 等待图表渲染完成后应用初始缩放
-        setTimeout(() => {
-            applyZoom();
-        }, 1000);
+        // 页面加载完成后初始化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initMermaid);
+        } else {
+            initMermaid();
+        }
     </script>
 </body>
 </html>
