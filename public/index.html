@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>师徒关系树</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 100%; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 20px; }
+        h1 { text-align: center; color: #333; margin-bottom: 20px; }
+        .controls { text-align: center; margin-bottom: 20px; }
+        button { margin: 0 5px; padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #diagram { width: 100%; min-height: 600px; border: 1px solid #ddd; border-radius: 4px; overflow: auto; text-align: center; }
+        .loading { padding: 50px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>师徒关系树</h1>
+        <div class="controls">
+            <button onclick="location.href='/login.html'">管理登录</button>
+        </div>
+        <div id="diagram"><div class="loading">正在加载...</div></div>
+    </div>
+    <script src="https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
+
+        async function loadTree() {
+            const res = await fetch('/api/persons');
+            const persons = await res.json();
+            
+            if (persons.length === 0) {
+                document.getElementById('diagram').innerHTML = '<div class="loading">暂无数据</div>';
+                return;
+            }
+
+            let mermaidCode = 'flowchart TD\n';
+            const roots = persons.filter(p => !p.parent_id);
+            const children = persons.filter(p => p.parent_id);
+
+            roots.forEach(r => {
+                mermaidCode += `    P${r.id}[${r.name}]\n`;
+            });
+
+            children.forEach(c => {
+                mermaidCode += `    P${c.parent_id} --> P${c.id}[${c.name}]\n`;
+            });
+
+            document.getElementById('diagram').innerHTML = `<div class="mermaid">${mermaidCode}</div>`;
+            await mermaid.run();
+        }
+
+        loadTree();
+    </script>
+</body>
+</html>
