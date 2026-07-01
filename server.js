@@ -170,14 +170,27 @@ app.post('/api/login', (req, res) => {
   res.json({ token });
 });
 
-// 修改密码
-app.post('/api/change-password', auth, (req, res) => {
+// 修改账号（用户名 / 密码）
+app.post('/api/account', auth, (req, res) => {
   const { username, newPassword } = req.body;
-  const user = db.users.find(u => u.username === username);
-  if (user) {
-    user.password = bcrypt.hashSync(newPassword, 10);
-    saveDB();
+  // 从 token 中获取当前用户名
+  const token = req.headers.authorization.split(' ')[1];
+  const decoded = jwt.verify(token, SECRET);
+  const currentUsername = decoded.username;
+
+  const user = db.users.find(u => u.username === currentUsername);
+  if (!user) return res.status(404).json({ error: '用户不存在' });
+
+  if (username) {
+    // 检查新用户名是否已被占用
+    const exists = db.users.find(u => u.username === username && u.username !== currentUsername);
+    if (exists) return res.status(400).json({ error: '用户名已被占用' });
+    user.username = username;
   }
+  if (newPassword) {
+    user.password = bcrypt.hashSync(newPassword, 10);
+  }
+  saveDB();
   res.json({ success: true });
 });
 
