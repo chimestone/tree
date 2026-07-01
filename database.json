@@ -1,0 +1,1095 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "password": "$2a$10$YdTsEHRXzl6UcuFDlLCxFet1GWstjF8IdJzUJ6YV9irjuFuPITDyW"
+    }
+  ],
+  "trees": [
+    {
+      "id": 2,
+      "name": "李诗俊",
+      "category": "",
+      "avatar": "",
+      "description": "",
+      "children": [
+        {
+          "id": 12,
+          "name": "褚明侦",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": [
+            {
+              "id": 32,
+              "name": "岳广睿",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": []
+            },
+            {
+              "id": 33,
+              "name": "谢雨函",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "name": "刘鹤祥",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": [
+            {
+              "id": 34,
+              "name": "和怡宁",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": []
+            },
+            {
+              "id": 35,
+              "name": "杨子琪",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": [
+                {
+                  "id": 62,
+                  "name": "朱彦婕",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": 36,
+              "name": "陈采汐",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": [
+                {
+                  "id": 63,
+                  "name": "谢文昊",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": [
+                    {
+                      "id": 89,
+                      "name": "许子欣",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": [
+                        {
+                          "id": 113,
+                          "name": "黄方合奕",
+                          "category": "",
+                          "avatar": "",
+                          "description": "",
+                          "children": []
+                        },
+                        {
+                          "id": 114,
+                          "name": "马金丽",
+                          "category": "",
+                          "avatar": "",
+                          "description": "",
+                          "children": []
+                        },
+                        {
+                          "id": 115,
+                          "name": "王雅婷",
+                          "category": "",
+                          "avatar": "",
+                          "description": "",
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": 90,
+                      "name": "张盼兮",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": [
+                        {
+                          "id": 116,
+                          "name": "李杭轩",
+                          "category": "",
+                          "avatar": "",
+                          "description": "",
+                          "children": []
+                        },
+                        {
+                          "id": 117,
+                          "name": "涂语桐",
+                          "category": "",
+                          "avatar": "",
+                          "description": "",
+                          "children": []
+                        },
+                        {
+                          "id": 118,
+                          "name": "徐笑依",
+                          "category": "",
+                          "avatar": "",
+                          "description": "",
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": 64,
+                  "name": "曹钰湫",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": []
+                },
+                {
+                  "id": 65,
+                  "name": "黄廷玉",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": [
+                    {
+                      "id": 91,
+                      "name": "赵冬雪",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    },
+                    {
+                      "id": 92,
+                      "name": "黎源木梓",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": [
+                        {
+                          "id": 119,
+                          "name": "汪逸云",
+                          "category": "",
+                          "avatar": "",
+                          "description": "",
+                          "children": []
+                        },
+                        {
+                          "id": 120,
+                          "name": "肖佳彤",
+                          "category": "",
+                          "avatar": "",
+                          "description": "",
+                          "children": []
+                        },
+                        {
+                          "id": 121,
+                          "name": "赵景曜",
+                          "category": "",
+                          "avatar": "",
+                          "description": "",
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": 93,
+                      "name": "罗宇晟",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "李遵森",
+      "category": "",
+      "avatar": "",
+      "description": "",
+      "children": [
+        {
+          "id": 14,
+          "name": "项千惠",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": []
+        },
+        {
+          "id": 15,
+          "name": "吴秋圆",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "郭佳乐",
+      "category": "",
+      "avatar": "",
+      "description": "",
+      "children": [
+        {
+          "id": 16,
+          "name": "孟想文昕",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": [
+            {
+              "id": 37,
+              "name": "林千晴",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": [
+                {
+                  "id": 66,
+                  "name": "赵锦婷",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": 38,
+              "name": "尹柳樾",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": []
+            },
+            {
+              "id": 39,
+              "name": "程正良",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": 17,
+          "name": "汪洁清",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": [
+            {
+              "id": 40,
+              "name": "陈嘉仪",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": []
+            },
+            {
+              "id": 41,
+              "name": "苏颖怡",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": 18,
+          "name": "覃海鸥",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "姜锐",
+      "category": "",
+      "avatar": "",
+      "description": "",
+      "children": [
+        {
+          "id": 19,
+          "name": "宋易达",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": [
+            {
+              "id": 42,
+              "name": "刘泽",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "鲁永清",
+      "category": "",
+      "avatar": "",
+      "description": "",
+      "children": [
+        {
+          "id": 20,
+          "name": "吴秋圆",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": [
+            {
+              "id": 43,
+              "name": "张高雅",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": [
+                {
+                  "id": 67,
+                  "name": "王淑芬",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": []
+                },
+                {
+                  "id": 68,
+                  "name": "张昊昀",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": []
+                },
+                {
+                  "id": 69,
+                  "name": "杜璟慧",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": 44,
+              "name": "杨新睿",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": [
+                {
+                  "id": 70,
+                  "name": "潘柔",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": [
+                    {
+                      "id": 94,
+                      "name": "李柔萱",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    },
+                    {
+                      "id": 95,
+                      "name": "明丹",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    },
+                    {
+                      "id": 96,
+                      "name": "姚晨飞",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": 45,
+              "name": "缪颖",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": []
+            },
+            {
+              "id": 46,
+              "name": "彭楚云",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": [
+                {
+                  "id": 71,
+                  "name": "冯韵之",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": []
+                },
+                {
+                  "id": 72,
+                  "name": "曾逸舟",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": []
+                },
+                {
+                  "id": 73,
+                  "name": "颜苗苗",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": 21,
+          "name": "李彦明",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": [
+            {
+              "id": 47,
+              "name": "李博",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": []
+            },
+            {
+              "id": 48,
+              "name": "李旭丞",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "name": "游子震",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": []
+        },
+        {
+          "id": 49,
+          "name": "孔亮",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": [
+            {
+              "id": 74,
+              "name": "喻继超",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": [
+                {
+                  "id": 97,
+                  "name": "池思荣",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": [
+                    {
+                      "id": 122,
+                      "name": "李伊然",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    },
+                    {
+                      "id": 123,
+                      "name": "朱智康",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": 75,
+              "name": "徐柳",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": []
+            },
+            {
+              "id": 76,
+              "name": "马君业",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": [
+                {
+                  "id": 98,
+                  "name": "阿立福·艾孜买提江",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": [
+                    {
+                      "id": 124,
+                      "name": "陈怡锘",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    },
+                    {
+                      "id": 125,
+                      "name": "张钦",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "马安娜",
+      "category": "",
+      "avatar": "",
+      "description": "",
+      "children": [
+        {
+          "id": 23,
+          "name": "林彤",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": [
+            {
+              "id": 50,
+              "name": "郑福华",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": []
+            },
+            {
+              "id": 51,
+              "name": "康嫚芯",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": 24,
+          "name": "欧阳瑞思",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "张珈奕",
+      "category": "",
+      "avatar": "",
+      "description": "",
+      "children": [
+        {
+          "id": 25,
+          "name": "孟繁升",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": [
+            {
+              "id": 52,
+              "name": "饶培颖",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": []
+            },
+            {
+              "id": 53,
+              "name": "黄子蔚",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": [
+                {
+                  "id": 77,
+                  "name": "刘慧君",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": [
+                    {
+                      "id": 99,
+                      "name": "李锦鹏",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    },
+                    {
+                      "id": 100,
+                      "name": "韩轩",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": [
+                        {
+                          "id": 126,
+                          "name": "陈天行",
+                          "category": "",
+                          "avatar": "",
+                          "description": "",
+                          "children": []
+                        },
+                        {
+                          "id": 127,
+                          "name": "谢俊溢",
+                          "category": "",
+                          "avatar": "",
+                          "description": "",
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": 101,
+                      "name": "游惠郡",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": 78,
+                  "name": "容子谦",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": []
+                },
+                {
+                  "id": 79,
+                  "name": "郭书岐",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": 54,
+              "name": "方菲",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "陈玺吉",
+      "category": "",
+      "avatar": "",
+      "description": "",
+      "children": [
+        {
+          "id": 26,
+          "name": "王天伊",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": [
+            {
+              "id": 55,
+              "name": "张高雅",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "陈剑东",
+      "category": "",
+      "avatar": "",
+      "description": "",
+      "children": [
+        {
+          "id": 27,
+          "name": "任潇",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": []
+        },
+        {
+          "id": 28,
+          "name": "李翔宇",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": [
+            {
+              "id": 56,
+              "name": "黄一鸣",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": [
+                {
+                  "id": 80,
+                  "name": "冯燕来",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": [
+                    {
+                      "id": 102,
+                      "name": "陈晶",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": [
+                        {
+                          "id": 128,
+                          "name": "梁宝文",
+                          "category": "",
+                          "avatar": "",
+                          "description": "",
+                          "children": []
+                        },
+                        {
+                          "id": 129,
+                          "name": "张荣彤",
+                          "category": "",
+                          "avatar": "",
+                          "description": "",
+                          "children": []
+                        },
+                        {
+                          "id": 130,
+                          "name": "朱智康",
+                          "category": "",
+                          "avatar": "",
+                          "description": "",
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": 103,
+                      "name": "张劲雷",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    },
+                    {
+                      "id": 104,
+                      "name": "刘骐铭",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": 81,
+                  "name": "李俊怡",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": 57,
+              "name": "刘雨婷",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": [
+                {
+                  "id": 82,
+                  "name": "彭子娴",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": 58,
+              "name": "孔瑞洁",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": 29,
+          "name": "王天宇",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "吕晓硕",
+      "category": "",
+      "avatar": "",
+      "description": "",
+      "children": [
+        {
+          "id": 30,
+          "name": "张家铭",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": [
+            {
+              "id": 59,
+              "name": "刘希睿",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": [
+                {
+                  "id": 83,
+                  "name": "陈烨健",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": []
+                },
+                {
+                  "id": 84,
+                  "name": "王焯",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": []
+                },
+                {
+                  "id": 85,
+                  "name": "马群杰",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": 60,
+              "name": "韩锦辉",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": []
+            },
+            {
+              "id": 61,
+              "name": "周睿",
+              "category": "",
+              "avatar": "",
+              "description": "",
+              "children": [
+                {
+                  "id": 86,
+                  "name": "朱芮瑄",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": [
+                    {
+                      "id": 105,
+                      "name": "孙鹤溪",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    },
+                    {
+                      "id": 106,
+                      "name": "朱玥乔",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    },
+                    {
+                      "id": 107,
+                      "name": "覃佳乐",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": 87,
+                  "name": "周祎",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": [
+                    {
+                      "id": 108,
+                      "name": "苏婧",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    },
+                    {
+                      "id": 109,
+                      "name": "葛禹彤",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    },
+                    {
+                      "id": 110,
+                      "name": "田鸿雅",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": 88,
+                  "name": "海洋",
+                  "category": "",
+                  "avatar": "",
+                  "description": "",
+                  "children": [
+                    {
+                      "id": 111,
+                      "name": "张盼兮",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    },
+                    {
+                      "id": 112,
+                      "name": "朱垚",
+                      "category": "",
+                      "avatar": "",
+                      "description": "",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": 31,
+          "name": "杨紫萱",
+          "category": "",
+          "avatar": "",
+          "description": "",
+          "children": []
+        }
+      ]
+    }
+  ],
+  "nextId": 131
+}

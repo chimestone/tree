@@ -104,6 +104,30 @@ body {
   pointer-events: none;
 }
 
+/* ===== Top Nav ===== */
+#top-nav {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+}
+#top-nav a {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: 13px;
+  text-decoration: none;
+  backdrop-filter: blur(12px);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+#top-nav a:hover {
+  background: rgba(255,255,255,0.06);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
 /* ===== Search ===== */
 #search-container {
   position: fixed;
@@ -355,6 +379,11 @@ body {
 
 <!-- Graph Canvas -->
 <div id="graph"></div>
+
+<!-- Top Nav -->
+<div id="top-nav">
+  <a href="admin.html" title="管理后台">⚙ 管理</a>
+</div>
 
 <!-- Search -->
 <div id="search-container">

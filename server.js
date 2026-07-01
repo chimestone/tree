@@ -7,24 +7,143 @@ const path = require('path');
 const app = express();
 const SECRET = process.env.SECRET || 'your-secret-key-change-this';
 const PORT = process.env.PORT || 3000;
-const DB_FILE = 'database.json';
+const DB_FILE = path.join(__dirname, 'database.json');
 
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// 初始化数据库
-let db = { users: [], persons: [], nextId: 1 };
-if (fs.existsSync(DB_FILE)) {
-  db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-} else {
-  const hash = bcrypt.hashSync('admin123', 10);
-  db.users.push({ id: 1, username: 'admin', password: hash });
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+// ============================================================
+//  树结构存储引擎
+// ============================================================
+// database.json 格式:
+//   { users: [...], trees: [{ id, name, category, avatar, description, children: [...] }], nextId: N }
+// ============================================================
+
+let db = { users: [], trees: [], nextId: 1 };
+
+function loadDB() {
+  if (fs.existsSync(DB_FILE)) {
+    db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+    // 确保 admin 用户存在且密码可用
+    const admin = db.users.find(u => u.username === 'admin');
+    if (!admin) {
+      db.users.push({ id: 1, username: 'admin', password: bcrypt.hashSync('admin123', 10) });
+      saveDB();
+    } else if (!bcrypt.compareSync('admin123', admin.password)) {
+      admin.password = bcrypt.hashSync('admin123', 10);
+      saveDB();
+    }
+  } else {
+    const hash = bcrypt.hashSync('admin123', 10);
+    db.users.push({ id: 1, username: 'admin', password: hash });
+    saveDB();
+  }
 }
 
-const saveDB = () => fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+function saveDB() {
+  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
+}
 
-// 认证中间件
+// ---- 树操作辅助函数 ----
+
+/** 在树数组中递归查找节点（返回引用） */
+function findNode(trees, id) {
+  for (const node of trees) {
+    if (node.id === id) return node;
+    if (node.children && node.children.length) {
+      const found = findNode(node.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+/** 查找节点的父节点（返回父节点引用），roots 的父节点为 null */
+function findParent(trees, id, parent = null) {
+  for (const node of trees) {
+    if (node.id === id) return parent;
+    if (node.children && node.children.length) {
+      const found = findParent(node.children, id, node);
+      if (found !== undefined) return found;
+    }
+  }
+  return undefined; // 未找到
+}
+
+/** 将树结构扁平化为数组（兼容旧 API） */
+function flatten(trees, parentId = null) {
+  const result = [];
+  for (const node of trees) {
+    const { children, ...flat } = node;
+    flat.parent_id = parentId;
+    if (!flat.category) flat.category = '';
+    if (!flat.avatar) flat.avatar = '';
+    if (!flat.description) flat.description = '';
+    result.push(flat);
+    if (children && children.length) {
+      result.push(...flatten(children, node.id));
+    }
+  }
+  return result;
+}
+
+/** 在树中递归删除节点，返回是否删除成功 */
+function removeNode(trees, id) {
+  for (let i = 0; i < trees.length; i++) {
+    if (trees[i].id === id) {
+      trees.splice(i, 1);
+      return true;
+    }
+    if (trees[i].children && trees[i].children.length) {
+      if (removeNode(trees[i].children, id)) return true;
+    }
+  }
+  return false;
+}
+
+/** 移动节点：从旧位置删除，插入到新父节点下 */
+function moveNode(trees, nodeId, newParentId) {
+  // 先找到并深拷贝节点
+  const node = findNode(trees, nodeId);
+  if (!node) return false;
+  const clone = JSON.parse(JSON.stringify(node));
+
+  // 从旧位置删除
+  removeNode(trees, nodeId);
+
+  // 插入到新父节点下
+  if (newParentId === null) {
+    trees.push(clone);
+  } else {
+    const parent = findNode(trees, newParentId);
+    if (!parent) {
+      // 回退：放回根级别
+      trees.push(clone);
+      return false;
+    }
+    if (!parent.children) parent.children = [];
+    parent.children.push(clone);
+  }
+  return true;
+}
+
+/** 统计节点总数 */
+function countNodes(trees) {
+  let n = 0;
+  for (const node of trees) {
+    n += 1 + (node.children ? countNodes(node.children) : 0);
+  }
+  return n;
+}
+
+// ============================================================
+//  初始化
+// ============================================================
+loadDB();
+
+// ============================================================
+//  认证中间件
+// ============================================================
 const auth = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ error: '未授权' });
@@ -35,6 +154,10 @@ const auth = (req, res, next) => {
     res.status(401).json({ error: '无效token' });
   }
 };
+
+// ============================================================
+//  API 路由
+// ============================================================
 
 // 登录
 app.post('/api/login', (req, res) => {
@@ -58,50 +181,110 @@ app.post('/api/change-password', auth, (req, res) => {
   res.json({ success: true });
 });
 
-// 获取所有人员
+// 获取所有人员（扁平输出，兼容前端）
 app.get('/api/persons', (req, res) => {
-  res.json(db.persons);
+  res.json(flatten(db.trees));
 });
 
 // 添加人员
 app.post('/api/persons', auth, (req, res) => {
   const { name, parent_id, category, avatar, description } = req.body;
+  if (!name) return res.status(400).json({ error: '姓名不能为空' });
+
   const person = {
     id: db.nextId++,
     name,
-    parent_id: parent_id || null,
     category: category || '',
     avatar: avatar || '',
-    description: description || ''
+    description: description || '',
+    children: []
   };
-  db.persons.push(person);
+
+  if (parent_id == null || parent_id === '') {
+    // 添加为根节点（新树）
+    db.trees.push(person);
+  } else {
+    const parent = findNode(db.trees, parseInt(parent_id));
+    if (!parent) {
+      return res.status(400).json({ error: '指定的师傅不存在' });
+    }
+    if (!parent.children) parent.children = [];
+    parent.children.push(person);
+  }
+
   saveDB();
   res.json(person);
 });
 
 // 更新人员
 app.put('/api/persons/:id', auth, (req, res) => {
+  const id = parseInt(req.params.id);
   const { name, parent_id, category, avatar, description } = req.body;
-  const person = db.persons.find(p => p.id == req.params.id);
-  if (person) {
-    person.name = name;
-    person.parent_id = parent_id || null;
-    person.category = category || '';
-    person.avatar = avatar || '';
-    person.description = description || '';
-    saveDB();
-  }
-  res.json({ success: true });
-});
+  const node = findNode(db.trees, id);
 
-// 删除人员
-app.delete('/api/persons/:id', auth, (req, res) => {
-  db.persons = db.persons.filter(p => p.id != req.params.id);
+  if (!node) return res.status(404).json({ error: '人员不存在' });
+
+  // 更新字段
+  if (name !== undefined) node.name = name;
+  if (category !== undefined) node.category = category || '';
+  if (avatar !== undefined) node.avatar = avatar || '';
+  if (description !== undefined) node.description = description || '';
+
+  // 处理师傅变更（移动节点）
+  if (parent_id !== undefined) {
+    const newParentId = parent_id === '' || parent_id === null ? null : parseInt(parent_id);
+    const currentParent = findParent(db.trees, id);
+    const currentParentId = currentParent ? currentParent.id : null;
+
+    if (newParentId !== currentParentId) {
+      // 防止循环引用：不能移动到自己或自己的后代下
+      if (newParentId === id) {
+        return res.status(400).json({ error: '不能将自己设为师傅' });
+      }
+      if (newParentId !== null) {
+        const newParent = findNode(db.trees, newParentId);
+        if (!newParent) return res.status(400).json({ error: '目标师傅不存在' });
+        // 检查新父节点是否是当前节点的后代
+        const descendants = flatten([node]);
+        if (descendants.some(d => d.id === newParentId)) {
+          return res.status(400).json({ error: '不能将节点移动到自己的后代下' });
+        }
+      }
+      moveNode(db.trees, id, newParentId);
+    }
+  }
+
   saveDB();
   res.json({ success: true });
 });
 
+// 删除人员（级联删除其所有后代）
+app.delete('/api/persons/:id', auth, (req, res) => {
+  const id = parseInt(req.params.id);
+  const node = findNode(db.trees, id);
+  if (!node) return res.status(404).json({ error: '人员不存在' });
+
+  const subtreeSize = 1 + countNodes(node.children || []);
+  removeNode(db.trees, id);
+  saveDB();
+  res.json({ success: true, removed: subtreeSize });
+});
+
+// ============================================================
+//  SPA fallback
+// ============================================================
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ============================================================
+//  启动
+// ============================================================
 app.listen(PORT, () => {
   console.log(`服务器运行在 http://localhost:${PORT}`);
+  console.log(`存储模式: 树结构 (${db.trees.length} 棵树, ${countNodes(db.trees)} 个节点)`);
   console.log(`默认账号: admin / admin123`);
 });

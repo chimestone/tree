@@ -7,3 +7,5 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: SECRET
+        value: change-this-to-a-random-string
