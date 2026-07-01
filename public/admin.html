@@ -1,100 +1,376 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>管理 - 师徒关系树</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
-        .header { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .container { background: white; padding: 20px; border-radius: 8px; }
-        input, select { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 4px; }
-        button { padding: 8px 16px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; color: white; }
-        .btn-add { background: #28a745; }
-        .btn-edit { background: #007bff; }
-        .btn-del { background: #dc3545; }
-        .btn-logout { background: #6c757d; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background: #f8f9fa; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理 - 师徒传承关系图谱</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --border: #30363d;
+  --text: #c9d1d9;
+  --text-dim: #8b949e;
+  --accent: #58a6ff;
+  --danger: #f85149;
+  --green: #3fb950;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 24px;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.header h1 { font-size: 22px; font-weight: 600; }
+.header .nav { display: flex; gap: 8px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+/* Form */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+
+input, select, textarea {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+textarea { resize: vertical; min-height: 60px; }
+
+/* Buttons */
+.btn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.15s, opacity 0.15s;
+}
+.btn:hover { opacity: 0.85; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-green { background: #238636; color: #fff; }
+.btn-danger { background: #da3633; color: #fff; }
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.btn-outline:hover { background: rgba(255,255,255,0.05); }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+
+/* Table */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  background: rgba(255,255,255,0.02);
+  position: sticky;
+  top: 0;
+}
+tr:hover td { background: rgba(255,255,255,0.02); }
+.gen-badge {
+  display: inline-block;
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: rgba(88,166,255,0.12);
+  color: var(--accent);
+}
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.06);
+  color: var(--text-dim);
+  margin-right: 4px;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  width: 420px;
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.modal h2 { font-size: 18px; margin-bottom: 16px; }
+.modal .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+/* Responsive */
+@media (max-width: 640px) {
+  body { padding: 12px; }
+  .form-grid { grid-template-columns: 1fr; }
+}
+</style>
 </head>
 <body>
-    <div class="header">
-        <h1>人员管理</h1>
-        <div>
-            <button class="btn-logout" onclick="location.href='index.html'">查看树状图</button>
-            <button class="btn-logout" onclick="logout()">退出登录</button>
-        </div>
+
+<div class="header">
+  <h1>人员管理</h1>
+  <div class="nav">
+    <a href="index.html" class="btn btn-outline">查看图谱</a>
+    <button class="btn btn-outline" onclick="logout()">退出登录</button>
+  </div>
+</div>
+
+<div class="card">
+  <h3 style="margin-bottom:14px;font-size:15px;">添加 / 编辑人员</h3>
+  <div class="form-grid">
+    <div class="form-group">
+      <label>姓名 *</label>
+      <input type="text" id="name" placeholder="输入姓名" />
     </div>
-    <div class="container">
-        <div>
-            <input type="text" id="name" placeholder="姓名" />
-            <select id="parent">
-                <option value="">无上级（根节点）</option>
-            </select>
-            <button class="btn-add" onclick="addPerson()">添加人员</button>
-        </div>
-        <table>
-            <thead>
-                <tr><th>ID</th><th>姓名</th><th>上级ID</th><th>操作</th></tr>
-            </thead>
-            <tbody id="list"></tbody>
-        </table>
+    <div class="form-group">
+      <label>师傅</label>
+      <select id="parent"></select>
     </div>
-    <script>
-        const token = localStorage.getItem('token');
-        if (!token) location.href = '/login.html';
+    <div class="form-group">
+      <label>分类</label>
+      <input type="text" id="category" placeholder="如：儒学、算学…" />
+    </div>
+    <div class="form-group">
+      <label>头像 URL</label>
+      <input type="text" id="avatar" placeholder="https://…" />
+    </div>
+    <div class="form-group" style="grid-column: 1 / -1;">
+      <label>备注</label>
+      <textarea id="description" rows="2" placeholder="人物简介…"></textarea>
+    </div>
+    <div style="display:flex;align-items:end;gap:8px;">
+      <button class="btn btn-primary" id="btn-save" onclick="savePerson()">添加人员</button>
+      <button class="btn btn-outline btn-sm" id="btn-cancel-edit" style="display:none" onclick="cancelEdit()">取消编辑</button>
+    </div>
+  </div>
+  <input type="hidden" id="edit-id" />
+</div>
 
-        async function loadPersons() {
-            const res = await fetch('/api/persons');
-            const persons = await res.json();
-            const list = document.getElementById('list');
-            const parent = document.getElementById('parent');
-            list.innerHTML = '';
-            parent.innerHTML = '<option value="">无上级（根节点）</option>';
-            persons.forEach(p => {
-                list.innerHTML += `<tr>
-                    <td>${p.id}</td>
-                    <td>${p.name}</td>
-                    <td>${p.parent_id || '-'}</td>
-                    <td>
-                        <button class="btn-del" onclick="deletePerson(${p.id})">删除</button>
-                    </td>
-                </tr>`;
-                parent.innerHTML += `<option value="${p.id}">${p.name}</option>`;
-            });
-        }
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+    <span style="font-size:13px;color:var(--text-dim);" id="count-info">共 0 人</span>
+    <input type="text" id="filter-input" placeholder="筛选姓名…" style="width:180px;" oninput="renderTable()" />
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>姓名</th><th>代</th><th>师傅</th><th>分类</th><th>徒弟数</th><th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="list"></tbody>
+    </table>
+  </div>
+</div>
 
-        async function addPerson() {
-            const name = document.getElementById('name').value;
-            const parent_id = document.getElementById('parent').value;
-            if (!name) return alert('请输入姓名');
-            await fetch('/api/persons', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ name, parent_id: parent_id || null })
-            });
-            document.getElementById('name').value = '';
-            loadPersons();
-        }
+<script>
+const token = localStorage.getItem('token');
+if (!token) location.href = '/login.html';
 
-        async function deletePerson(id) {
-            if (!confirm('确定删除？')) return;
-            await fetch(`/api/persons/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            loadPersons();
-        }
+let persons = [];
+let editId = null;
 
-        function logout() {
-            localStorage.removeItem('token');
-            location.href = '/login.html';
-        }
+// ---- Load ----
+async function loadPersons() {
+  const res = await fetch('/api/persons');
+  persons = await res.json();
+  computeMeta();
+  renderTable();
+  renderParentSelect();
+}
 
-        loadPersons();
-    </script>
+// ---- Compute generation & disciples ----
+function computeMeta() {
+  const children = new Map();
+  persons.forEach(p => {
+    if (p.parent_id != null) {
+      if (!children.has(p.parent_id)) children.set(p.parent_id, []);
+      children.get(p.parent_id).push(p.id);
+    }
+  });
+
+  // BFS for generations
+  const gen = new Map();
+  const roots = persons.filter(p => p.parent_id == null);
+  const q = roots.map(p => [p.id, 0]);
+  while (q.length) {
+    const [id, g] = q.shift();
+    gen.set(id, g);
+    (children.get(id) || []).forEach(cid => q.push([cid, g + 1]));
+  }
+
+  persons.forEach(p => {
+    p._generation = gen.get(p.id) ?? 0;
+    p._discipleCount = (children.get(p.id) || []).length;
+  });
+}
+
+// ---- Render table ----
+function renderTable() {
+  const filter = (document.getElementById('filter-input')?.value || '').toLowerCase();
+  const list = document.getElementById('list');
+  const filtered = filter
+    ? persons.filter(p => p.name.toLowerCase().includes(filter))
+    : persons;
+
+  document.getElementById('count-info').textContent =
+    filter ? `筛选结果 ${filtered.length} / ${persons.length} 人` : `共 ${persons.length} 人`;
+
+  list.innerHTML = filtered.map(p => {
+    const masterName = p.parent_id ? (persons.find(x => x.id === p.parent_id)?.name || '—') : '—';
+    const catTag = p.category ? `<span class="tag">${esc(p.category)}</span>` : '';
+    return `<tr>
+      <td>${p.id}</td>
+      <td><strong>${esc(p.name)}</strong></td>
+      <td><span class="gen-badge">${p._generation + 1}</span></td>
+      <td style="color:var(--text-dim)">${esc(masterName)}</td>
+      <td>${catTag}</td>
+      <td>${p._discipleCount}</td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="startEdit(${p.id})">编辑</button>
+        <button class="btn btn-danger btn-sm" onclick="deletePerson(${p.id})">删除</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderParentSelect() {
+  const sel = document.getElementById('parent');
+  sel.innerHTML = '<option value="">无（祖师）</option>' +
+    persons.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+}
+
+// ---- Save ----
+async function savePerson() {
+  const name = document.getElementById('name').value.trim();
+  if (!name) return alert('请输入姓名');
+  const parent_id = document.getElementById('parent').value;
+  const body = {
+    name,
+    parent_id: parent_id || null,
+    category: document.getElementById('category').value.trim(),
+    avatar: document.getElementById('avatar').value.trim(),
+    description: document.getElementById('description').value.trim(),
+  };
+
+  if (editId) {
+    await fetch(`/api/persons/${editId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(body)
+    });
+  } else {
+    await fetch('/api/persons', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(body)
+    });
+  }
+  cancelEdit();
+  loadPersons();
+}
+
+// ---- Edit ----
+function startEdit(id) {
+  const p = persons.find(x => x.id === id);
+  if (!p) return;
+  editId = id;
+  document.getElementById('edit-id').value = id;
+  document.getElementById('name').value = p.name || '';
+  document.getElementById('parent').value = p.parent_id || '';
+  document.getElementById('category').value = p.category || '';
+  document.getElementById('avatar').value = p.avatar || '';
+  document.getElementById('description').value = p.description || '';
+  document.getElementById('btn-save').textContent = '保存修改';
+  document.getElementById('btn-cancel-edit').style.display = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEdit() {
+  editId = null;
+  document.getElementById('edit-id').value = '';
+  document.getElementById('name').value = '';
+  document.getElementById('parent').value = '';
+  document.getElementById('category').value = '';
+  document.getElementById('avatar').value = '';
+  document.getElementById('description').value = '';
+  document.getElementById('btn-save').textContent = '添加人员';
+  document.getElementById('btn-cancel-edit').style.display = 'none';
+}
+
+// ---- Delete ----
+async function deletePerson(id) {
+  if (!confirm('确定删除此人？此操作不可撤销。')) return;
+  await fetch(`/api/persons/${id}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (editId === id) cancelEdit();
+  loadPersons();
+}
+
+// ---- Logout ----
+function logout() {
+  localStorage.removeItem('token');
+  location.href = '/login.html';
+}
+
+function esc(s) {
+  const div = document.createElement('div');
+  div.textContent = s || '';
+  return div.innerHTML;
+}
+
+// Boot
+loadPersons();
+</script>
 </body>
 </html>

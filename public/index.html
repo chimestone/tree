@@ -1,59 +1,1147 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>师徒关系树</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
-        .container { max-width: 100%; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 20px; }
-        h1 { text-align: center; color: #333; margin-bottom: 20px; }
-        .controls { text-align: center; margin-bottom: 20px; }
-        button { margin: 0 5px; padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #0056b3; }
-        #diagram { width: 100%; min-height: 600px; border: 1px solid #ddd; border-radius: 4px; overflow: auto; text-align: center; }
-        .loading { padding: 50px; color: #666; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>师徒传承关系图谱</title>
+<style>
+/* ===== Reset & Base ===== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --border: #30363d;
+  --text: #c9d1d9;
+  --text-dim: #8b949e;
+  --accent: #58a6ff;
+  --danger: #f85149;
+  --node-highlight: #ffa198;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ===== Graph Container ===== */
+#graph {
+  position: fixed;
+  inset: 0;
+  cursor: grab;
+}
+#graph:active { cursor: grabbing; }
+#graph.dragging-node { cursor: default; }
+
+/* Canvas dot-grid background */
+#graph::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+#graph svg {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+
+/* ===== Links ===== */
+.link {
+  stroke: rgba(139, 148, 158, 0.25);
+  stroke-width: 1.2px;
+  fill: none;
+  transition: stroke 0.3s, stroke-width 0.3s, opacity 0.3s;
+}
+.link.highlight {
+  stroke: rgba(88, 166, 255, 0.6);
+  stroke-width: 2px;
+}
+.link.dim { opacity: 0.04; }
+
+/* ===== Nodes ===== */
+.node-group { cursor: pointer; }
+.node-group.dim { opacity: 0.12; }
+
+.node-circle {
+  transition: r 0.25s, fill 0.3s, stroke 0.3s, opacity 0.3s;
+}
+.node-circle.highlight-ancestor {
+  stroke: var(--accent);
+  stroke-width: 2.5px;
+}
+.node-circle.highlight-descendant {
+  stroke: #3fb950;
+  stroke-width: 2.5px;
+}
+.node-circle.highlight-selected {
+  stroke: #ffa198;
+  stroke-width: 3.5px;
+  filter: drop-shadow(0 0 8px rgba(255,161,152,0.5));
+}
+
+.node-label {
+  font-size: 11px;
+  fill: var(--text);
+  text-anchor: middle;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+
+.node-avatar {
+  clip-path: circle();
+  pointer-events: none;
+}
+
+/* ===== Search ===== */
+#search-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  width: 360px;
+  max-width: 90vw;
+}
+#search-input {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  backdrop-filter: blur(12px);
+}
+#search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(88,166,255,0.15);
+}
+#search-input::placeholder { color: var(--text-dim); }
+
+#search-results {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0 0 10px 10px;
+  border-top: none;
+  max-height: 260px;
+  overflow-y: auto;
+  display: none;
+}
+#search-results.visible { display: block; }
+
+.search-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.15s;
+  font-size: 14px;
+}
+.search-item:hover, .search-item.active { background: rgba(88,166,255,0.1); }
+.search-item .gen-badge {
+  font-size: 11px;
+  background: var(--border);
+  padding: 1px 7px;
+  border-radius: 10px;
+  color: var(--text-dim);
+}
+.search-item .master-name {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-left: auto;
+}
+
+/* ===== Info Panel ===== */
+#info-panel {
+  position: fixed;
+  top: 0;
+  right: -380px;
+  width: 360px;
+  max-width: 90vw;
+  height: 100vh;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  z-index: 200;
+  padding: 24px 20px;
+  overflow-y: auto;
+  transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(16px);
+}
+#info-panel.open { right: 0; }
+
+#info-panel .close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+#info-panel .close-btn:hover { background: var(--border); color: var(--text); }
+
+#info-panel .avatar-large {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 12px;
+  border: 2px solid var(--border);
+}
+
+#info-panel h2 {
+  font-size: 22px;
+  margin-bottom: 6px;
+  word-break: break-all;
+}
+#info-panel .gen-tag {
+  display: inline-block;
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: rgba(88,166,255,0.15);
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+#info-panel .info-section { margin-top: 18px; }
+#info-panel .info-section h3 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+#info-panel .master-link, #info-panel .disciple-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  margin: 2px 4px 2px 0;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s, border-color 0.15s;
+  word-break: break-all;
+}
+#info-panel .master-link:hover, #info-panel .disciple-link:hover {
+  background: rgba(88,166,255,0.1);
+  border-color: var(--accent);
+}
+
+#info-panel .desc-text {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+#info-panel .stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+#info-panel .stat-label { color: var(--text-dim); }
+#info-panel .stat-value { color: var(--text); font-weight: 500; }
+
+/* ===== Overlay (click outside to deselect) ===== */
+#overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: none;
+}
+#overlay.visible { display: block; }
+
+/* ===== Legend ===== */
+#legend {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 50;
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+#legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#legend .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* ===== Toast ===== */
+#toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-size: 13px;
+  z-index: 300;
+  opacity: 0;
+  transition: transform 0.3s, opacity 0.3s;
+  pointer-events: none;
+}
+#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ===== Loading ===== */
+#loading {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  background: var(--bg);
+  transition: opacity 0.4s;
+}
+#loading.hidden { opacity: 0; pointer-events: none; }
+#loading .spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>师徒关系树</h1>
-        <div class="controls">
-            <button onclick="location.href='/login.html'">管理登录</button>
-        </div>
-        <div id="diagram"><div class="loading">正在加载...</div></div>
+
+<!-- Loading -->
+<div id="loading"><div class="spinner"></div></div>
+
+<!-- Graph Canvas -->
+<div id="graph"></div>
+
+<!-- Search -->
+<div id="search-container">
+  <input id="search-input" type="text" placeholder="搜索人物姓名…" autocomplete="off" />
+  <div id="search-results"></div>
+</div>
+
+<!-- Info Panel -->
+<div id="info-panel">
+  <button class="close-btn" title="关闭">✕</button>
+  <div id="info-content"></div>
+</div>
+
+<!-- Overlay for deselect -->
+<div id="overlay"></div>
+
+<!-- Legend -->
+<div id="legend">
+  <span><span class="dot" style="background:#ff7b72;"></span> 祖师</span>
+  <span><span class="dot" style="background:#d2a8ff;"></span> 中坚</span>
+  <span><span class="dot" style="background:#79c0ff;"></span> 新锐</span>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+// ============================================================
+//  CONFIG
+// ============================================================
+const CONFIG = {
+  nodeRadius: { min: 8, max: 28 },
+  linkDistance: 130,
+  linkStrength: 0.35,
+  chargeStrength: -350,
+  yForceStrength: 0.06,
+  centerStrength: 0.04,
+  collideRadius: 5,
+  collideStrength: 0.8,
+  labelZoomThreshold: 1.2,
+  detailZoomThreshold: 2.0,
+  initAnimDuration: 1200,
+  focusAnimDuration: 600,
+  colorScheme: d3.interpolateRgbBasis(['#ff7b72', '#d2a8ff', '#79c0ff', '#a5d6ff']),
+  maxGenDisplay: 15,
+};
+
+// ============================================================
+//  STATE
+// ============================================================
+const S = {
+  nodes: [],
+  links: [],
+  nodeMap: new Map(),
+  childrenMap: new Map(),   // parentId → [childNode, ...]
+  maxGeneration: 0,
+  selectedId: null,
+  sim: null,
+  svg: null,
+  zoom: null,
+  mainGroup: null,
+  linkGroup: null,
+  nodeGroup: null,
+  labelGroup: null,
+  width: 0,
+  height: 0,
+};
+
+// ============================================================
+//  DATA PROCESSING
+// ============================================================
+function computeGenerations(persons) {
+  // Build map
+  const map = new Map(persons.map(p => [p.id, p]));
+  const children = new Map(); // parentId → [childId, ...]
+  persons.forEach(p => {
+    const pid = p.parent_id;
+    if (pid != null) {
+      if (!children.has(pid)) children.set(pid, []);
+      children.get(pid).push(p.id);
+    }
+  });
+
+  // BFS from roots to assign generations
+  const genMap = new Map(); // id → generation
+  const roots = persons.filter(p => p.parent_id == null);
+  const queue = roots.map(p => [p.id, 0]);
+
+  while (queue.length) {
+    const [id, gen] = queue.shift();
+    genMap.set(id, gen);
+    const kids = children.get(id) || [];
+    kids.forEach(kid => queue.push([kid, gen + 1]));
+  }
+
+  return { genMap, children };
+}
+
+function processData(persons) {
+  const { genMap, children: rawChildren } = computeGenerations(persons);
+  const maxGen = Math.max(0, ...genMap.values());
+
+  // Build children map (node references)
+  const nodeMap = new Map();
+  const childrenMap = new Map();
+
+  // Create nodes
+  const nodes = persons.map(p => ({
+    ...p,
+    generation: genMap.get(p.id) ?? 0,
+    discipleCount: (rawChildren.get(p.id) || []).length,
+    _children: rawChildren.get(p.id) || [],
+  }));
+
+  nodes.forEach(n => nodeMap.set(n.id, n));
+  nodes.forEach(n => {
+    childrenMap.set(n.id, (n._children || []).map(cid => nodeMap.get(cid)).filter(Boolean));
+  });
+
+  // Build links
+  const links = [];
+  nodes.forEach(n => {
+    if (n.parent_id != null && nodeMap.has(n.parent_id)) {
+      links.push({ source: n.parent_id, target: n.id });
+    }
+  });
+
+  // Compute subtree size (total descendants) for each node
+  function calcSubtreeSize(node) {
+    const kids = childrenMap.get(node.id) || [];
+    let size = 0;
+    kids.forEach(k => { size += 1 + calcSubtreeSize(k); });
+    node.subtreeSize = size;
+    return size;
+  }
+  nodes.filter(n => n.parent_id == null).forEach(n => calcSubtreeSize(n));
+
+  // Compute node radius based on subtree size
+  const maxSubtree = Math.max(1, ...nodes.map(n => n.subtreeSize || 0));
+  nodes.forEach(n => {
+    const t = (n.subtreeSize || 0) / maxSubtree;
+    n.radius = CONFIG.nodeRadius.min + t * (CONFIG.nodeRadius.max - CONFIG.nodeRadius.min);
+  });
+
+  return { nodes, links, nodeMap, childrenMap, maxGen };
+}
+
+// ============================================================
+//  RENDER HELPERS
+// ============================================================
+function nodeColor(d) {
+  if (S.maxGeneration === 0) return '#79c0ff';
+  return CONFIG.colorScheme(d.generation / S.maxGeneration);
+}
+
+function findAncestors(node) {
+  const ancestors = [];
+  let cur = node;
+  while (cur && cur.parent_id != null && S.nodeMap.has(cur.parent_id)) {
+    cur = S.nodeMap.get(cur.parent_id);
+    ancestors.push(cur);
+  }
+  return ancestors;
+}
+
+function findDescendants(node) {
+  const descendants = [];
+  const stack = [node];
+  while (stack.length) {
+    const cur = stack.pop();
+    const kids = S.childrenMap.get(cur.id) || [];
+    kids.forEach(k => {
+      descendants.push(k);
+      stack.push(k);
+    });
+  }
+  return descendants;
+}
+
+// ============================================================
+//  GRAPH INITIALIZATION
+// ============================================================
+function initGraph() {
+  const container = document.getElementById('graph');
+  S.width = container.clientWidth;
+  S.height = container.clientHeight;
+
+  // SVG
+  S.svg = d3.select('#graph').append('svg')
+    .attr('width', S.width)
+    .attr('height', S.height);
+
+  // Define filters/defs
+  const defs = S.svg.append('defs');
+
+  // Zoom behavior
+  S.zoom = d3.zoom()
+    .scaleExtent([0.15, 6])
+    .on('zoom', (event) => {
+      S.mainGroup.attr('transform', event.transform);
+      updateLabelVisibility(event.transform.k);
+    });
+
+  S.svg.call(S.zoom);
+
+  // Main group (transformed by zoom)
+  S.mainGroup = S.svg.append('g');
+
+  // Layers
+  S.linkGroup = S.mainGroup.append('g').attr('class', 'links-layer');
+  S.nodeGroup = S.mainGroup.append('g').attr('class', 'nodes-layer');
+  S.labelGroup = S.mainGroup.append('g').attr('class', 'labels-layer');
+
+  // Initial zoom transform (will be updated after simulation)
+  S.svg.call(S.zoom.transform, d3.zoomIdentity);
+}
+
+function updateLabelVisibility(k) {
+  const show = k >= CONFIG.labelZoomThreshold;
+  S.labelGroup.selectAll('.node-label').style('opacity', show ? 1 : 0);
+}
+
+// ============================================================
+//  FORCE SIMULATION
+// ============================================================
+function initSimulation() {
+  if (S.sim) S.sim.stop();
+
+  S.sim = d3.forceSimulation(S.nodes)
+    .force('link', d3.forceLink(S.links)
+      .id(d => d.id)
+      .distance(CONFIG.linkDistance)
+      .strength(CONFIG.linkStrength))
+    .force('charge', d3.forceManyBody()
+      .strength(CONFIG.chargeStrength))
+    .force('center', d3.forceCenter(S.width / 2, S.height / 2)
+      .strength(CONFIG.centerStrength))
+    .force('y', d3.forceY(d => {
+      // Invert: newest generation (maxGen) at center, roots at top
+      const normGen = (S.maxGeneration - d.generation) / Math.max(1, S.maxGeneration);
+      return S.height * 0.2 + normGen * S.height * 0.55;
+    }).strength(CONFIG.yForceStrength))
+    .force('collide', d3.forceCollide()
+      .radius(d => d.radius + CONFIG.collideRadius)
+      .strength(CONFIG.collideStrength))
+    .force('x', d3.forceX(S.width / 2).strength(0.02));
+
+  // Alpha decay: slower for smoother initial animation
+  S.sim.alphaDecay(0.02);
+  S.sim.velocityDecay(0.3);
+
+  S.sim.on('tick', onTick);
+}
+
+function onTick() {
+  // Update links
+  S.linkGroup.selectAll('line')
+    .attr('x1', d => d.source.x)
+    .attr('y1', d => d.source.y)
+    .attr('x2', d => d.target.x)
+    .attr('y2', d => d.target.y);
+
+  // Update nodes
+  S.nodeGroup.selectAll('.node-group')
+    .attr('transform', d => `translate(${d.x},${d.y})`);
+
+  // Update labels
+  S.labelGroup.selectAll('.node-label')
+    .attr('x', d => d.x)
+    .attr('y', d => d.y + d.radius + 13);
+}
+
+// ============================================================
+//  RENDER
+// ============================================================
+function renderLinks() {
+  S.linkGroup.selectAll('line').remove();
+
+  S.linkGroup.selectAll('line')
+    .data(S.links, d => `${d.source.id || d.source}-${d.target.id || d.target}`)
+    .join('line')
+    .attr('class', 'link')
+    .attr('stroke-linecap', 'round');
+}
+
+function renderNodes() {
+  S.nodeGroup.selectAll('.node-group').remove();
+
+  const nodeEnter = S.nodeGroup.selectAll('.node-group')
+    .data(S.nodes, d => d.id)
+    .join('g')
+    .attr('class', 'node-group')
+    .attr('transform', d => `translate(${d.x},${d.y})`)
+    .call(dragBehavior());
+
+  // Circle
+  nodeEnter.append('circle')
+    .attr('class', 'node-circle')
+    .attr('r', d => d.radius)
+    .attr('fill', d => nodeColor(d))
+    .attr('fill-opacity', 0.85)
+    .attr('stroke', d => d3.color(nodeColor(d)).darker(0.4))
+    .attr('stroke-width', 1)
+    .on('click', (event, d) => onNodeClick(event, d))
+    .on('mouseenter', (event, d) => onNodeHover(event, d))
+    .on('mouseleave', onNodeLeave);
+
+  // Hover glow
+  nodeEnter.append('circle')
+    .attr('class', 'node-glow')
+    .attr('r', d => d.radius + 4)
+    .attr('fill', 'none')
+    .attr('stroke', d => nodeColor(d))
+    .attr('stroke-width', 0)
+    .attr('opacity', 0)
+    .attr('pointer-events', 'none')
+    .style('transition', 'stroke-width 0.2s, opacity 0.2s');
+}
+
+function renderLabels() {
+  S.labelGroup.selectAll('.node-label').remove();
+
+  S.labelGroup.selectAll('.node-label')
+    .data(S.nodes, d => d.id)
+    .join('text')
+    .attr('class', 'node-label')
+    .attr('x', d => d.x)
+    .attr('y', d => d.y + d.radius + 13)
+    .text(d => d.name)
+    .style('opacity', 0);
+}
+
+function renderAll() {
+  renderLinks();
+  renderNodes();
+  renderLabels();
+}
+
+// ============================================================
+//  DRAG BEHAVIOR
+// ============================================================
+function dragBehavior() {
+  let dragNode = null;
+
+  function dragStarted(event, d) {
+    if (!event.active) S.sim.alphaTarget(0.3).restart();
+    d.fx = d.x;
+    d.fy = d.y;
+    dragNode = d;
+    document.getElementById('graph').classList.add('dragging-node');
+  }
+
+  function dragged(event, d) {
+    d.fx = event.x;
+    d.fy = event.y;
+  }
+
+  function dragEnded(event, d) {
+    if (!event.active) S.sim.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+    dragNode = null;
+    document.getElementById('graph').classList.remove('dragging-node');
+  }
+
+  return d3.drag()
+    .on('start', dragStarted)
+    .on('drag', dragged)
+    .on('end', dragEnded);
+}
+
+// ============================================================
+//  NODE INTERACTIONS
+// ============================================================
+function onNodeClick(event, d) {
+  event.stopPropagation();
+
+  if (S.selectedId === d.id) {
+    // Deselect
+    clearHighlight();
+    S.selectedId = null;
+    hideInfoPanel();
+    document.getElementById('overlay').classList.remove('visible');
+    return;
+  }
+
+  S.selectedId = d.id;
+  highlightPath(d);
+  showInfoPanel(d);
+  document.getElementById('overlay').classList.add('visible');
+}
+
+function onNodeHover(event, d) {
+  if (S.selectedId) return; // Don't interfere with selection highlight
+
+  d3.select(event.currentTarget).select('.node-glow')
+    .attr('stroke-width', 3)
+    .attr('opacity', 0.6);
+
+  // Slightly enlarge
+  d3.select(event.currentTarget).select('.node-circle')
+    .transition().duration(150)
+    .attr('r', d.radius + 3);
+}
+
+function onNodeLeave(event, d) {
+  d3.select(event.currentTarget).select('.node-glow')
+    .attr('stroke-width', 0)
+    .attr('opacity', 0);
+
+  if (S.selectedId !== d.id) {
+    d3.select(event.currentTarget).select('.node-circle')
+      .transition().duration(150)
+      .attr('r', d.radius);
+  }
+}
+
+function highlightPath(node) {
+  const ancestors = findAncestors(node);
+  const descendants = findDescendants(node);
+  const highlightSet = new Set([node.id, ...ancestors.map(a => a.id), ...descendants.map(d => d.id)]);
+
+  // Build a set of link IDs that are on the highlighted paths
+  const highlightLinks = new Set();
+  S.links.forEach(l => {
+    const sid = l.source.id || l.source;
+    const tid = l.target.id || l.target;
+    if (highlightSet.has(sid) && highlightSet.has(tid)) {
+      highlightLinks.add(`${sid}-${tid}`);
+    }
+  });
+
+  // Update node styling
+  S.nodeGroup.selectAll('.node-group')
+    .classed('dim', d => !highlightSet.has(d.id));
+
+  S.nodeGroup.selectAll('.node-circle')
+    .attr('class', d => {
+      let cls = 'node-circle';
+      if (d.id === node.id) cls += ' highlight-selected';
+      else if (ancestors.some(a => a.id === d.id)) cls += ' highlight-ancestor';
+      else if (descendants.some(dd => dd.id === d.id)) cls += ' highlight-descendant';
+      return cls;
+    });
+
+  // Update link styling
+  S.linkGroup.selectAll('line')
+    .classed('highlight', d => {
+      const sid = d.source.id || d.source;
+      const tid = d.target.id || d.target;
+      return highlightLinks.has(`${sid}-${tid}`);
+    })
+    .classed('dim', d => {
+      const sid = d.source.id || d.source;
+      const tid = d.target.id || d.target;
+      return !highlightLinks.has(`${sid}-${tid}`);
+    });
+}
+
+function clearHighlight() {
+  S.nodeGroup.selectAll('.node-group').classed('dim', false);
+  S.nodeGroup.selectAll('.node-circle')
+    .attr('class', 'node-circle')
+    .attr('r', d => d.radius);
+  S.linkGroup.selectAll('line').classed('highlight', false).classed('dim', false);
+  S.nodeGroup.selectAll('.node-glow')
+    .attr('stroke-width', 0).attr('opacity', 0);
+  S.selectedId = null;
+}
+
+// ============================================================
+//  SEARCH
+// ============================================================
+function initSearch() {
+  const input = document.getElementById('search-input');
+  const results = document.getElementById('search-results');
+  let activeIdx = -1;
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    activeIdx = -1;
+
+    if (!q) {
+      results.classList.remove('visible');
+      results.innerHTML = '';
+      return;
+    }
+
+    const matches = S.nodes
+      .filter(n => n.name.toLowerCase().includes(q))
+      .slice(0, 12);
+
+    if (!matches.length) {
+      results.classList.add('visible');
+      results.innerHTML = '<div class="search-item" style="color:var(--text-dim)">未找到匹配人物</div>';
+      return;
+    }
+
+    results.classList.add('visible');
+    results.innerHTML = matches.map((n, i) => {
+      const masterName = n.parent_id ? (S.nodeMap.get(n.parent_id)?.name || '—') : '祖师';
+      return `<div class="search-item${i === activeIdx ? ' active' : ''}" data-id="${n.id}">
+        <span>${n.name}</span>
+        <span class="gen-badge">第${n.generation + 1}代</span>
+        <span class="master-name">师：${masterName}</span>
+      </div>`;
+    }).join('');
+
+    // Click handlers
+    results.querySelectorAll('.search-item[data-id]').forEach(item => {
+      item.addEventListener('click', () => {
+        const id = +item.dataset.id;
+        const node = S.nodeMap.get(id);
+        if (node) selectAndFocus(node);
+        input.value = '';
+        results.classList.remove('visible');
+      });
+    });
+  });
+
+  // Keyboard navigation
+  input.addEventListener('keydown', (e) => {
+    const items = results.querySelectorAll('.search-item[data-id]');
+    if (!items.length) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIdx = Math.min(activeIdx + 1, items.length - 1);
+      updateSearchActive(items, activeIdx);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIdx = Math.max(activeIdx - 1, 0);
+      updateSearchActive(items, activeIdx);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeIdx >= 0 && items[activeIdx]) {
+        items[activeIdx].click();
+      } else if (items[0]) {
+        items[0].click();
+      }
+      results.classList.remove('visible');
+    } else if (e.key === 'Escape') {
+      results.classList.remove('visible');
+      input.blur();
+    }
+  });
+
+  // Close search on outside click
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#search-container')) {
+      results.classList.remove('visible');
+    }
+  });
+}
+
+function updateSearchActive(items, idx) {
+  items.forEach((item, i) => item.classList.toggle('active', i === idx));
+}
+
+function selectAndFocus(node) {
+  S.selectedId = node.id;
+  highlightPath(node);
+  showInfoPanel(node);
+  document.getElementById('overlay').classList.add('visible');
+
+  // Animate camera to node
+  const transform = d3.zoomIdentity
+    .translate(S.width / 2, S.height / 2)
+    .scale(2.5)
+    .translate(-node.x, -node.y);
+
+  S.svg.transition()
+    .duration(CONFIG.focusAnimDuration)
+    .call(S.zoom.transform, transform);
+}
+
+// ============================================================
+//  INFO PANEL
+// ============================================================
+function showInfoPanel(node) {
+  const panel = document.getElementById('info-panel');
+  const content = document.getElementById('info-content');
+  const master = node.parent_id ? S.nodeMap.get(node.parent_id) : null;
+  const disciples = S.childrenMap.get(node.id) || [];
+  const ancestors = findAncestors(node);
+
+  const avatarHTML = node.avatar
+    ? `<img class="avatar-large" src="${escapeHTML(node.avatar)}" alt="${escapeHTML(node.name)}" />`
+    : `<div style="width:64px;height:64px;border-radius:50%;background:${nodeColor(node)};margin-bottom:12px;display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;border:2px solid var(--border);">${node.name.charAt(0)}</div>`;
+
+  const masterHTML = master
+    ? `<span class="master-link" data-id="${master.id}">${escapeHTML(master.name)}</span>`
+    : '<span style="color:var(--text-dim);font-size:13px;">无（祖师）</span>';
+
+  const disciplesHTML = disciples.length
+    ? disciples.map(d =>
+        `<span class="disciple-link" data-id="${d.id}">${escapeHTML(d.name)}</span>`
+      ).join('')
+    : '<span style="color:var(--text-dim);font-size:13px;">暂无徒弟</span>';
+
+  const ancestorsHTML = ancestors.length
+    ? ancestors.map(a => `<span class="disciple-link" data-id="${a.id}" style="font-size:12px">${escapeHTML(a.name)}</span>`).join(' <span style="color:var(--text-dim)">←</span> ')
+    : '<span style="color:var(--text-dim);font-size:13px;">无（本人为祖师）</span>';
+
+  const catBadge = node.category
+    ? `<span style="display:inline-block;padding:2px 8px;border-radius:4px;background:rgba(255,255,255,0.06);font-size:12px;margin-left:8px;color:var(--text-dim)">${escapeHTML(node.category)}</span>`
+    : '';
+
+  content.innerHTML = `
+    ${avatarHTML}
+    <h2>${escapeHTML(node.name)}${catBadge}</h2>
+    <span class="gen-tag">第 ${node.generation + 1} 代</span>
+    ${node.description ? `<p class="desc-text">${escapeHTML(node.description)}</p>` : ''}
+
+    <div class="info-section">
+      <h3>师承路径</h3>
+      <div>${ancestorsHTML}</div>
     </div>
-    <script src="https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js"></script>
-    <script>
-        mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
 
-        async function loadTree() {
-            const res = await fetch('/api/persons');
-            const persons = await res.json();
-            
-            if (persons.length === 0) {
-                document.getElementById('diagram').innerHTML = '<div class="loading">暂无数据</div>';
-                return;
-            }
+    <div class="info-section">
+      <h3>师傅</h3>
+      <div>${masterHTML}</div>
+    </div>
 
-            let mermaidCode = 'flowchart TD\n';
-            const roots = persons.filter(p => !p.parent_id);
-            const children = persons.filter(p => p.parent_id);
+    <div class="info-section">
+      <h3>徒弟（${disciples.length}人）</h3>
+      <div>${disciplesHTML}</div>
+    </div>
 
-            roots.forEach(r => {
-                mermaidCode += `    P${r.id}[${r.name}]\n`;
-            });
+    <div class="info-section">
+      <h3>统计</h3>
+      <div class="stat-row"><span class="stat-label">分支总人数</span><span class="stat-value">${(node.subtreeSize || 0) + 1}</span></div>
+      <div class="stat-row"><span class="stat-label">直接徒弟</span><span class="stat-value">${node.discipleCount || 0}</span></div>
+    </div>
+  `;
 
-            children.forEach(c => {
-                mermaidCode += `    P${c.parent_id} --> P${c.id}[${c.name}]\n`;
-            });
+  // Click handlers for master/disciple links
+  content.querySelectorAll('.master-link, .disciple-link').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = +el.dataset.id;
+      const targetNode = S.nodeMap.get(id);
+      if (targetNode) selectAndFocus(targetNode);
+    });
+  });
 
-            document.getElementById('diagram').innerHTML = `<div class="mermaid">${mermaidCode}</div>`;
-            await mermaid.run();
-        }
+  panel.classList.add('open');
 
-        loadTree();
-    </script>
+  // Close button
+  panel.querySelector('.close-btn').onclick = () => {
+    hideInfoPanel();
+    clearHighlight();
+    document.getElementById('overlay').classList.remove('visible');
+  };
+}
+
+function hideInfoPanel() {
+  document.getElementById('info-panel').classList.remove('open');
+}
+
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ============================================================
+//  BACKGROUND CLICK (DESELECT)
+// ============================================================
+function initOverlay() {
+  document.getElementById('overlay').addEventListener('click', () => {
+    clearHighlight();
+    hideInfoPanel();
+    document.getElementById('overlay').classList.remove('visible');
+  });
+
+  // Escape key to deselect
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && S.selectedId) {
+      clearHighlight();
+      hideInfoPanel();
+      document.getElementById('overlay').classList.remove('visible');
+    }
+    // Ctrl+F / Cmd+F focus search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      e.preventDefault();
+      document.getElementById('search-input').focus();
+    }
+  });
+}
+
+// ============================================================
+//  RESIZE HANDLER
+// ============================================================
+function initResize() {
+  window.addEventListener('resize', () => {
+    const container = document.getElementById('graph');
+    S.width = container.clientWidth;
+    S.height = container.clientHeight;
+    S.svg.attr('width', S.width).attr('height', S.height);
+    S.sim.force('center', d3.forceCenter(S.width / 2, S.height / 2));
+    S.sim.alpha(0.1).restart();
+  });
+}
+
+// ============================================================
+//  TOAST
+// ============================================================
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ============================================================
+//  MAIN
+// ============================================================
+async function main() {
+  try {
+    // Load data
+    const res = await fetch('/api/persons');
+    if (!res.ok) throw new Error('数据加载失败');
+    const persons = await res.json();
+
+    if (!persons.length) {
+      document.getElementById('loading').innerHTML =
+        '<div style="text-align:center;color:var(--text-dim)"><p style="font-size:18px">暂无数据</p><p style="margin-top:8px">请先添加人物</p><a href="admin.html" style="color:var(--accent);margin-top:16px;display:inline-block">前往管理页面</a></div>';
+      return;
+    }
+
+    // Process data
+    const result = processData(persons);
+    S.nodes = result.nodes;
+    S.links = result.links;
+    S.nodeMap = result.nodeMap;
+    S.childrenMap = result.childrenMap;
+    S.maxGeneration = result.maxGen;
+
+    // Init graph
+    initGraph();
+    initSimulation();
+    renderAll();
+
+    // Cool-down: after initial simulation, center view on latest generation
+    S.sim.on('end', () => {
+      const leafNodes = S.nodes.filter(n => n.generation === S.maxGeneration);
+      if (leafNodes.length) {
+        const cx = d3.mean(leafNodes, d => d.x) || S.width / 2;
+        const cy = d3.mean(leafNodes, d => d.y) || S.height / 2;
+        const transform = d3.zoomIdentity
+          .translate(S.width / 2, S.height / 2)
+          .scale(1.2)
+          .translate(-cx, -cy);
+
+        S.svg.transition()
+          .duration(CONFIG.initAnimDuration)
+          .call(S.zoom.transform, transform);
+      }
+
+      // Show labels after initial animation
+      updateLabelVisibility(S.zoom.transform?.k || 1);
+    });
+
+    // Init interactions
+    initSearch();
+    initOverlay();
+    initResize();
+
+    // Hide loading
+    setTimeout(() => {
+      document.getElementById('loading').classList.add('hidden');
+      showToast(`已加载 ${S.nodes.length} 位人物，${S.links.length} 条师徒关系`);
+    }, 400);
+
+  } catch (err) {
+    console.error(err);
+    document.getElementById('loading').innerHTML =
+      `<div style="text-align:center;color:var(--danger)"><p>加载失败：${err.message}</p></div>`;
+  }
+}
+
+// Boot
+main();
+</script>
 </body>
 </html>

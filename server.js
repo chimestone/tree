@@ -65,8 +65,15 @@ app.get('/api/persons', (req, res) => {
 
 // 添加人员
 app.post('/api/persons', auth, (req, res) => {
-  const { name, parent_id } = req.body;
-  const person = { id: db.nextId++, name, parent_id: parent_id || null };
+  const { name, parent_id, category, avatar, description } = req.body;
+  const person = {
+    id: db.nextId++,
+    name,
+    parent_id: parent_id || null,
+    category: category || '',
+    avatar: avatar || '',
+    description: description || ''
+  };
   db.persons.push(person);
   saveDB();
   res.json(person);
@@ -74,11 +81,14 @@ app.post('/api/persons', auth, (req, res) => {
 
 // 更新人员
 app.put('/api/persons/:id', auth, (req, res) => {
-  const { name, parent_id } = req.body;
+  const { name, parent_id, category, avatar, description } = req.body;
   const person = db.persons.find(p => p.id == req.params.id);
   if (person) {
     person.name = name;
     person.parent_id = parent_id || null;
+    person.category = category || '';
+    person.avatar = avatar || '';
+    person.description = description || '';
     saveDB();
   }
   res.json({ success: true });
