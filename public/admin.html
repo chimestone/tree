@@ -223,14 +223,14 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 
 <script>
 const token = localStorage.getItem('token');
-if (!token) location.href = '/login.html';
+if (!token) location.href = 'login.html';
 
 let persons = [];
 let editId = null;
 
 // ---- Load ----
 async function loadPersons() {
-  const res = await fetch('/api/persons');
+  const res = await fetch('api/persons');
   persons = await res.json();
   computeMeta();
   renderTable();
@@ -308,13 +308,13 @@ async function savePerson() {
   };
 
   if (editId) {
-    await fetch(`/api/persons/${editId}`, {
+    await fetch(`api/persons/${editId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify(body)
     });
   } else {
-    await fetch('/api/persons', {
+    await fetch('api/persons', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify(body)
@@ -351,7 +351,7 @@ function cancelEdit() {
 // ---- Delete ----
 async function deletePerson(id) {
   if (!confirm('确定删除此人？此操作不可撤销。')) return;
-  await fetch(`/api/persons/${id}`, {
+  await fetch(`api/persons/${id}`, {
     method: 'DELETE',
     headers: { 'Authorization': `Bearer ${token}` }
   });
@@ -369,7 +369,7 @@ async function updateAccount() {
     return;
   }
   try {
-    const res = await fetch('/api/account', {
+    const res = await fetch('api/account', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ username: username || undefined, newPassword: password || undefined })
@@ -390,7 +390,7 @@ async function updateAccount() {
 // ---- Logout ----
 function logout() {
   localStorage.removeItem('token');
-  location.href = '/login.html';
+  location.href = 'login.html';
 }
 
 function esc(s) {

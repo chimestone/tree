@@ -84,7 +84,7 @@ async function login() {
   const username = document.getElementById('username').value;
   const password = document.getElementById('password').value;
   try {
-    const res = await fetch('/api/login', {
+    const res = await fetch('api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -92,7 +92,7 @@ async function login() {
     const data = await res.json();
     if (res.ok) {
       localStorage.setItem('token', data.token);
-      window.location.href = '/admin.html';
+      window.location.href = 'admin.html';
     } else {
       document.getElementById('error').textContent = data.error;
     }
