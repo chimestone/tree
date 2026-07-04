@@ -24,18 +24,18 @@ let db = { users: [], trees: [], nextId: 1 };
 function loadDB() {
   if (fs.existsSync(DB_FILE)) {
     db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-    // 确保 admin 用户存在且密码可用
-    const admin = db.users.find(u => u.username === 'admin');
+    // 确保默认用户存在且密码可用
+    const admin = db.users.find(u => u.username === 'stfzb611');
     if (!admin) {
-      db.users.push({ id: 1, username: 'admin', password: bcrypt.hashSync('admin123', 10) });
+      db.users.push({ id: 1, username: 'stfzb611', password: bcrypt.hashSync('ywagrycz', 10) });
       saveDB();
-    } else if (!bcrypt.compareSync('admin123', admin.password)) {
-      admin.password = bcrypt.hashSync('admin123', 10);
+    } else if (!bcrypt.compareSync('ywagrycz', admin.password)) {
+      admin.password = bcrypt.hashSync('ywagrycz', 10);
       saveDB();
     }
   } else {
-    const hash = bcrypt.hashSync('admin123', 10);
-    db.users.push({ id: 1, username: 'admin', password: hash });
+    const hash = bcrypt.hashSync('ywagrycz', 10);
+    db.users.push({ id: 1, username: 'stfzb611', password: hash });
     saveDB();
   }
 }
@@ -299,5 +299,5 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`服务器运行在 http://localhost:${PORT}`);
   console.log(`存储模式: 树结构 (${db.trees.length} 棵树, ${countNodes(db.trees)} 个节点)`);
-  console.log(`默认账号: admin / admin123`);
+  console.log(`默认账号: stfzb611 / ywagrycz`);
 });
