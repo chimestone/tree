@@ -1,406 +1,99 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>管理 - 师徒传承关系图谱</title>
-<style>
-:root {
-  --bg: #0d1117;
-  --surface: #161b22;
-  --border: #30363d;
-  --text: #c9d1d9;
-  --text-dim: #8b949e;
-  --accent: #58a6ff;
-  --danger: #f85149;
-  --green: #3fb950;
-}
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  padding: 24px;
-}
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.header h1 { font-size: 22px; font-weight: 600; }
-.header .nav { display: flex; gap: 8px; }
-
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
-}
-
-/* Form */
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-  align-items: end;
-}
-.form-group { display: flex; flex-direction: column; gap: 4px; }
-.form-group label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
-
-input, select, textarea {
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 14px;
-  font-family: inherit;
-  outline: none;
-  transition: border-color 0.2s;
-}
-input:focus, select:focus, textarea:focus { border-color: var(--accent); }
-textarea { resize: vertical; min-height: 60px; }
-
-/* Buttons */
-.btn {
-  padding: 8px 18px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: background 0.15s, opacity 0.15s;
-}
-.btn:hover { opacity: 0.85; }
-.btn-primary { background: var(--accent); color: #fff; }
-.btn-green { background: #238636; color: #fff; }
-.btn-danger { background: #da3633; color: #fff; }
-.btn-outline {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-.btn-outline:hover { background: rgba(255,255,255,0.05); }
-.btn-sm { padding: 4px 10px; font-size: 12px; }
-
-/* Table */
-.table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
-th {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-dim);
-  background: rgba(255,255,255,0.02);
-  position: sticky;
-  top: 0;
-}
-tr:hover td { background: rgba(255,255,255,0.02); }
-.gen-badge {
-  display: inline-block;
-  font-size: 11px;
-  padding: 1px 8px;
-  border-radius: 10px;
-  background: rgba(88,166,255,0.12);
-  color: var(--accent);
-}
-.tag {
-  display: inline-block;
-  font-size: 11px;
-  padding: 1px 8px;
-  border-radius: 4px;
-  background: rgba(255,255,255,0.06);
-  color: var(--text-dim);
-  margin-right: 4px;
-}
-
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.modal {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 24px;
-  width: 420px;
-  max-width: 90vw;
-  max-height: 85vh;
-  overflow-y: auto;
-}
-.modal h2 { font-size: 18px; margin-bottom: 16px; }
-.modal .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
-
-/* Responsive */
-@media (max-width: 640px) {
-  body { padding: 12px; }
-  .form-grid { grid-template-columns: 1fr; }
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理后台 · 师徒传承</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <link rel="stylesheet" href="/css/admin.css">
 </head>
-<body>
+<body class="admin-page">
+  <main class="admin-shell">
+    <header class="admin-header">
+      <div>
+        <h1>管理后台</h1>
+        <p id="admin-subtitle">正在验证登录状态…</p>
+      </div>
+      <div class="header-actions">
+        <a class="button" href="/">← 返回图谱</a>
+        <button id="logout" class="button" type="button">退出登录</button>
+      </div>
+    </header>
 
-<div class="header">
-  <h1>人员管理</h1>
-  <div class="nav">
-    <a href="index.html" class="btn btn-outline">查看图谱</a>
-    <button class="btn btn-outline" onclick="logout()">退出登录</button>
-  </div>
-</div>
+    <div id="page-message" class="notice hidden" role="status"></div>
 
-<div class="card">
-  <h3 style="margin-bottom:14px;font-size:15px;">添加 / 编辑人员</h3>
-  <div class="form-grid">
-    <div class="form-group">
-      <label>姓名 *</label>
-      <input type="text" id="name" placeholder="输入姓名" />
+    <div class="admin-grid">
+      <div>
+        <section class="card" id="person-editor">
+          <h2 id="editor-title">新增人员</h2>
+          <p class="card-subtitle">人员姓名全局唯一；师傅（上游）可以多选。</p>
+          <form id="person-form" class="form-grid" novalidate>
+            <input id="person-id" type="hidden">
+            <div class="field"><label for="person-name">姓名 *</label><input id="person-name" required maxlength="80" placeholder="例如：李明"></div>
+            <div class="two-col">
+              <div class="field"><label for="person-category">分类</label><input id="person-category" maxlength="80" placeholder="可选"></div>
+              <div class="field"><label for="person-avatar">头像 URL</label><input id="person-avatar" type="url" placeholder="可选"></div>
+            </div>
+            <div class="field">
+              <label for="person-masters">师傅（上游，可多选）</label>
+              <select id="person-masters" multiple></select>
+              <span class="field-hint">按住 Ctrl / ⌘ 可多选；系统会拒绝后代反向设为师傅。</span>
+            </div>
+            <div class="field"><label for="person-description">简介</label><textarea id="person-description" maxlength="2000" placeholder="可选"></textarea></div>
+            <div class="form-actions">
+              <button id="save-person" class="button primary" type="submit">添加人员</button>
+              <button id="cancel-edit" class="button hidden" type="button">取消编辑</button>
+            </div>
+            <div id="person-status" class="status-line" aria-live="polite"></div>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>新增师徒关系</h2>
+          <p class="card-subtitle">方向固定为“师傅（上游） → 徒弟（下游）”，重复关系与环路会被拒绝。</p>
+          <form id="relationship-form" class="form-grid" novalidate>
+            <div class="field"><label for="relationship-master">师傅（上游）</label><select id="relationship-master" required></select></div>
+            <div class="field"><label for="relationship-disciple">徒弟（下游）</label><select id="relationship-disciple" required></select></div>
+            <div class="form-actions"><button class="button primary" type="submit">添加关系</button></div>
+            <div id="relationship-status" class="status-line" aria-live="polite"></div>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>账号设置</h2>
+          <p class="card-subtitle">修改后当前登录 token 仍可使用；下次登录使用新账号信息。</p>
+          <form id="account-form" class="form-grid" novalidate>
+            <div class="field"><label for="account-username">新用户名</label><input id="account-username" autocomplete="username" placeholder="留空表示不修改"></div>
+            <div class="field"><label for="account-password">新密码</label><input id="account-password" type="password" autocomplete="new-password" minlength="8" placeholder="至少 8 位，留空表示不修改"></div>
+            <div class="form-actions"><button class="button" type="submit">保存账号设置</button></div>
+            <div id="account-status" class="status-line" aria-live="polite"></div>
+          </form>
+        </section>
+      </div>
+
+      <div>
+        <section class="card">
+          <h2>人员列表 <span id="person-count" class="count-badge"></span></h2>
+          <p class="card-subtitle">删除人员只移除本人及其入边、出边，不会级联删除其他人员。</p>
+          <div class="field" style="margin-bottom:12px"><label for="person-filter">筛选</label><input id="person-filter" type="search" placeholder="按姓名或分类筛选"></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>人员</th><th>师傅（上游）</th><th>徒弟（下游）</th><th>操作</th></tr></thead>
+              <tbody id="person-table"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>关系列表 <span id="relationship-count" class="count-badge"></span></h2>
+          <p class="card-subtitle">删除关系与删除人员是独立操作。</p>
+          <div id="relationship-list"></div>
+        </section>
+      </div>
     </div>
-    <div class="form-group">
-      <label>师傅</label>
-      <select id="parent"></select>
-    </div>
-    <div class="form-group" style="grid-column: 1 / -1;">
-      <label>备注</label>
-      <textarea id="description" rows="2" placeholder="人物简介…"></textarea>
-    </div>
-    <div style="display:flex;align-items:end;gap:8px;">
-      <button class="btn btn-primary" id="btn-save" onclick="savePerson()">添加人员</button>
-      <button class="btn btn-outline btn-sm" id="btn-cancel-edit" style="display:none" onclick="cancelEdit()">取消编辑</button>
-    </div>
-  </div>
-  <input type="hidden" id="edit-id" />
-</div>
-
-<div class="card">
-  <h3 style="margin-bottom:14px;font-size:15px;">账号设置</h3>
-  <div class="form-grid">
-    <div class="form-group">
-      <label>新用户名</label>
-      <input type="text" id="new-username" placeholder="不修改则留空" />
-    </div>
-    <div class="form-group">
-      <label>新密码</label>
-      <input type="password" id="new-password" placeholder="不修改则留空" />
-    </div>
-    <div style="display:flex;align-items:end;">
-      <button class="btn btn-outline" onclick="updateAccount()">更新账号</button>
-    </div>
-  </div>
-  <div id="account-msg" style="margin-top:8px;font-size:13px;min-height:20px;"></div>
-</div>
-
-<div class="card">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-    <span style="font-size:13px;color:var(--text-dim);" id="count-info">共 0 人</span>
-    <input type="text" id="filter-input" placeholder="筛选姓名…" style="width:180px;" oninput="renderTable()" />
-  </div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th><th>姓名</th><th>代</th><th>师傅</th><th>徒弟数</th><th>操作</th>
-        </tr>
-      </thead>
-      <tbody id="list"></tbody>
-    </table>
-  </div>
-</div>
-
-<script>
-const token = localStorage.getItem('token');
-if (!token) location.href = 'login.html';
-
-let persons = [];
-let editId = null;
-
-// ---- Load ----
-async function loadPersons() {
-  const res = await fetch('api/persons');
-  persons = await res.json();
-  computeMeta();
-  renderTable();
-  renderParentSelect();
-}
-
-// ---- Compute generation & disciples ----
-function computeMeta() {
-  const children = new Map();
-  persons.forEach(p => {
-    if (p.parent_id != null) {
-      if (!children.has(p.parent_id)) children.set(p.parent_id, []);
-      children.get(p.parent_id).push(p.id);
-    }
-  });
-
-  // BFS for generations
-  const gen = new Map();
-  const roots = persons.filter(p => p.parent_id == null);
-  const q = roots.map(p => [p.id, 0]);
-  while (q.length) {
-    const [id, g] = q.shift();
-    gen.set(id, g);
-    (children.get(id) || []).forEach(cid => q.push([cid, g + 1]));
-  }
-
-  persons.forEach(p => {
-    p._generation = gen.get(p.id) ?? 0;
-    p._discipleCount = (children.get(p.id) || []).length;
-  });
-}
-
-// ---- Render table ----
-function renderTable() {
-  const filter = (document.getElementById('filter-input')?.value || '').toLowerCase();
-  const list = document.getElementById('list');
-  const filtered = filter
-    ? persons.filter(p => p.name.toLowerCase().includes(filter))
-    : persons;
-
-  document.getElementById('count-info').textContent =
-    filter ? `筛选结果 ${filtered.length} / ${persons.length} 人` : `共 ${persons.length} 人`;
-
-  list.innerHTML = filtered.map(p => {
-    const masterName = p.parent_id ? (persons.find(x => x.id === p.parent_id)?.name || '—') : '—';
-    return `<tr>
-      <td>${p.id}</td>
-      <td><strong>${esc(p.name)}</strong></td>
-      <td><span class="gen-badge">${p._generation + 1}</span></td>
-      <td style="color:var(--text-dim)">${esc(masterName)}</td>
-      <td>${p._discipleCount}</td>
-      <td>
-        <button class="btn btn-outline btn-sm" onclick="startEdit(${p.id})">编辑</button>
-        <button class="btn btn-danger btn-sm" onclick="deletePerson(${p.id})">删除</button>
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-function renderParentSelect() {
-  const sel = document.getElementById('parent');
-  sel.innerHTML = '<option value="">无（祖师）</option>' +
-    persons.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
-}
-
-// ---- Save ----
-async function savePerson() {
-  const name = document.getElementById('name').value.trim();
-  if (!name) return alert('请输入姓名');
-  const parent_id = document.getElementById('parent').value;
-  const body = {
-    name,
-    parent_id: parent_id || null,
-    description: document.getElementById('description').value.trim(),
-  };
-
-  if (editId) {
-    await fetch(`api/persons/${editId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify(body)
-    });
-  } else {
-    await fetch('api/persons', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify(body)
-    });
-  }
-  cancelEdit();
-  loadPersons();
-}
-
-// ---- Edit ----
-function startEdit(id) {
-  const p = persons.find(x => x.id === id);
-  if (!p) return;
-  editId = id;
-  document.getElementById('edit-id').value = id;
-  document.getElementById('name').value = p.name || '';
-  document.getElementById('parent').value = p.parent_id || '';
-  document.getElementById('description').value = p.description || '';
-  document.getElementById('btn-save').textContent = '保存修改';
-  document.getElementById('btn-cancel-edit').style.display = '';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function cancelEdit() {
-  editId = null;
-  document.getElementById('edit-id').value = '';
-  document.getElementById('name').value = '';
-  document.getElementById('parent').value = '';
-  document.getElementById('description').value = '';
-  document.getElementById('btn-save').textContent = '添加人员';
-  document.getElementById('btn-cancel-edit').style.display = 'none';
-}
-
-// ---- Delete ----
-async function deletePerson(id) {
-  if (!confirm('确定删除此人？此操作不可撤销。')) return;
-  await fetch(`api/persons/${id}`, {
-    method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  if (editId === id) cancelEdit();
-  loadPersons();
-}
-
-// ---- Account ----
-async function updateAccount() {
-  const username = document.getElementById('new-username').value.trim();
-  const password = document.getElementById('new-password').value;
-  const msg = document.getElementById('account-msg');
-  if (!username && !password) {
-    msg.innerHTML = '<span style="color:var(--text-dim)">请输入新用户名或新密码</span>';
-    return;
-  }
-  try {
-    const res = await fetch('api/account', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ username: username || undefined, newPassword: password || undefined })
-    });
-    const data = await res.json();
-    if (res.ok) {
-      msg.innerHTML = '<span style="color:var(--green)">账号更新成功</span>';
-      document.getElementById('new-username').value = '';
-      document.getElementById('new-password').value = '';
-    } else {
-      msg.innerHTML = `<span style="color:var(--danger)">${data.error}</span>`;
-    }
-  } catch (e) {
-    msg.innerHTML = '<span style="color:var(--danger)">更新失败</span>';
-  }
-}
-
-// ---- Logout ----
-function logout() {
-  localStorage.removeItem('token');
-  location.href = 'login.html';
-}
-
-function esc(s) {
-  const div = document.createElement('div');
-  div.textContent = s || '';
-  return div.innerHTML;
-}
-
-// Boot
-loadPersons();
-</script>
+  </main>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="/js/api.js"></script>
+  <script src="/js/admin.js"></script>
 </body>
 </html>

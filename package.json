@@ -1,14 +1,18 @@
 {
   "name": "tree-management",
   "version": "1.0.0",
-  "description": "师徒关系树管理系统",
+  "description": "师徒关系 DAG 管理系统",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test"
   },
   "dependencies": {
     "express": "^4.18.2",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2"
+  },
+  "overrides": {
+    "qs": "6.16.0"
   }
 }

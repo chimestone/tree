@@ -77,15 +77,15 @@ body {
   transition: r 0.25s, fill 0.3s, stroke 0.3s, opacity 0.3s;
 }
 .node-circle.highlight-ancestor {
-  stroke: var(--accent);
+  stroke: currentColor;
   stroke-width: 2.5px;
 }
 .node-circle.highlight-descendant {
-  stroke: #3fb950;
+  stroke: currentColor;
   stroke-width: 2.5px;
 }
 .node-circle.highlight-selected {
-  stroke: #ffa198;
+  stroke: currentColor;
   stroke-width: 3.5px;
   filter: drop-shadow(0 0 8px rgba(255,161,152,0.5));
 }
@@ -303,29 +303,6 @@ body {
 }
 #overlay.visible { display: block; }
 
-/* ===== Legend ===== */
-#legend {
-  position: fixed;
-  bottom: 24px;
-  left: 24px;
-  z-index: 50;
-  display: flex;
-  gap: 14px;
-  font-size: 12px;
-  color: var(--text-dim);
-}
-#legend span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-#legend .dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
 /* ===== Toast ===== */
 #toast {
   position: fixed;
@@ -400,13 +377,6 @@ body {
 <!-- Overlay for deselect -->
 <div id="overlay"></div>
 
-<!-- Legend -->
-<div id="legend">
-  <span><span class="dot" style="background:#ff7b72;"></span> 祖师</span>
-  <span><span class="dot" style="background:#d2a8ff;"></span> 中坚</span>
-  <span><span class="dot" style="background:#79c0ff;"></span> 新锐</span>
-</div>
-
 <!-- Toast -->
 <div id="toast"></div>
 
@@ -440,6 +410,8 @@ const S = {
   links: [],
   nodeMap: new Map(),
   childrenMap: new Map(),   // parentId → [childNode, ...]
+  mastersMap: new Map(),    // discipleId → [masterNode, ...]
+  nodeColors: new Map(),
   maxGeneration: 0,
   selectedId: null,
   sim: null,
@@ -456,40 +428,47 @@ const S = {
 // ============================================================
 //  DATA PROCESSING
 // ============================================================
-function computeGenerations(persons) {
-  // Build map
-  const map = new Map(persons.map(p => [p.id, p]));
-  const children = new Map(); // parentId → [childId, ...]
-  persons.forEach(p => {
-    const pid = p.parent_id;
-    if (pid != null) {
-      if (!children.has(pid)) children.set(pid, []);
-      children.get(pid).push(p.id);
-    }
+function computeGenerations(persons, relationships = []) {
+  const children = new Map(persons.map(p => [p.id, []]));
+  const masters = new Map(persons.map(p => [p.id, []]));
+  const seenEdges = new Set();
+
+  relationships.forEach(r => {
+    if (!children.has(r.master_id) || !masters.has(r.disciple_id)) return;
+    const edgeKey = `${r.master_id}:${r.disciple_id}`;
+    if (seenEdges.has(edgeKey)) return;
+    seenEdges.add(edgeKey);
+    children.get(r.master_id).push(r.disciple_id);
+    masters.get(r.disciple_id).push(r.master_id);
   });
 
-  // BFS from roots to assign generations
-  const genMap = new Map(); // id → generation
-  const roots = persons.filter(p => p.parent_id == null);
-  const queue = roots.map(p => [p.id, 0]);
+  // Topological traversal from all roots. The longest known path is retained
+  // when a person has multiple masters, while visited edges are processed once.
+  const remainingMasters = new Map(persons.map(p => [p.id, masters.get(p.id).length]));
+  const genMap = new Map(persons.map(p => [p.id, 0]));
+  const queue = persons.filter(p => remainingMasters.get(p.id) === 0).map(p => p.id);
 
   while (queue.length) {
-    const [id, gen] = queue.shift();
-    genMap.set(id, gen);
-    const kids = children.get(id) || [];
-    kids.forEach(kid => queue.push([kid, gen + 1]));
+    const id = queue.shift();
+    const generation = genMap.get(id) || 0;
+    (children.get(id) || []).forEach(childId => {
+      genMap.set(childId, Math.max(genMap.get(childId) || 0, generation + 1));
+      remainingMasters.set(childId, remainingMasters.get(childId) - 1);
+      if (remainingMasters.get(childId) === 0) queue.push(childId);
+    });
   }
 
-  return { genMap, children };
+  return { genMap, children, masters };
 }
 
-function processData(persons) {
-  const { genMap, children: rawChildren } = computeGenerations(persons);
+function processData(persons, relationships = []) {
+  const { genMap, children: rawChildren, masters: rawMasters } = computeGenerations(persons, relationships);
   const maxGen = Math.max(0, ...genMap.values());
 
-  // Build children map (node references)
+  // Build relation maps (node references)
   const nodeMap = new Map();
   const childrenMap = new Map();
+  const mastersMap = new Map();
 
   // Create nodes
   const nodes = persons.map(p => ({
@@ -502,25 +481,35 @@ function processData(persons) {
   nodes.forEach(n => nodeMap.set(n.id, n));
   nodes.forEach(n => {
     childrenMap.set(n.id, (n._children || []).map(cid => nodeMap.get(cid)).filter(Boolean));
+    mastersMap.set(n.id, (rawMasters.get(n.id) || []).map(mid => nodeMap.get(mid)).filter(Boolean));
   });
 
   // Build links
   const links = [];
-  nodes.forEach(n => {
-    if (n.parent_id != null && nodeMap.has(n.parent_id)) {
-      links.push({ source: n.parent_id, target: n.id });
+  relationships.forEach(r => {
+    if (nodeMap.has(r.master_id) && nodeMap.has(r.disciple_id)) {
+      links.push({ id: r.id, source: r.master_id, target: r.disciple_id });
     }
   });
 
   // Compute subtree size (total descendants) for each node
   function calcSubtreeSize(node) {
-    const kids = childrenMap.get(node.id) || [];
+    const visited = new Set([node.id]);
+    const stack = [node];
     let size = 0;
-    kids.forEach(k => { size += 1 + calcSubtreeSize(k); });
+    while (stack.length) {
+      const current = stack.pop();
+      (childrenMap.get(current.id) || []).forEach(child => {
+        if (visited.has(child.id)) return;
+        visited.add(child.id);
+        size += 1;
+        stack.push(child);
+      });
+    }
     node.subtreeSize = size;
     return size;
   }
-  nodes.filter(n => n.parent_id == null).forEach(n => calcSubtreeSize(n));
+  nodes.forEach(n => calcSubtreeSize(n));
 
   // Compute node radius based on subtree size
   const maxSubtree = Math.max(1, ...nodes.map(n => n.subtreeSize || 0));
@@ -529,34 +518,40 @@ function processData(persons) {
     n.radius = CONFIG.nodeRadius.min + t * (CONFIG.nodeRadius.max - CONFIG.nodeRadius.min);
   });
 
-  return { nodes, links, nodeMap, childrenMap, maxGen };
+  return { nodes, links, nodeMap, childrenMap, mastersMap, maxGen };
 }
 
 // ============================================================
 //  RENDER HELPERS
 // ============================================================
 function nodeColor(d) {
-  if (S.maxGeneration === 0) return '#79c0ff';
-  return CONFIG.colorScheme(d.generation / S.maxGeneration);
+  return S.nodeColors.get(d.id) || '#9F84EF';
 }
 
 function findAncestors(node) {
   const ancestors = [];
-  let cur = node;
-  while (cur && cur.parent_id != null && S.nodeMap.has(cur.parent_id)) {
-    cur = S.nodeMap.get(cur.parent_id);
+  const visited = new Set([node.id]);
+  const stack = [...(S.mastersMap.get(node.id) || [])];
+  while (stack.length) {
+    const cur = stack.pop();
+    if (!cur || visited.has(cur.id)) continue;
+    visited.add(cur.id);
     ancestors.push(cur);
+    stack.push(...(S.mastersMap.get(cur.id) || []));
   }
   return ancestors;
 }
 
 function findDescendants(node) {
   const descendants = [];
+  const visited = new Set([node.id]);
   const stack = [node];
   while (stack.length) {
     const cur = stack.pop();
     const kids = S.childrenMap.get(cur.id) || [];
     kids.forEach(k => {
+      if (visited.has(k.id)) return;
+      visited.add(k.id);
       descendants.push(k);
       stack.push(k);
     });
@@ -685,8 +680,9 @@ function renderNodes() {
     .attr('class', 'node-circle')
     .attr('r', d => d.radius)
     .attr('fill', d => nodeColor(d))
-    .attr('fill-opacity', 0.85)
-    .attr('stroke', d => d3.color(nodeColor(d)).darker(0.4))
+    .attr('color', d => nodeColor(d))
+    .attr('fill-opacity', 1)
+    .attr('stroke', d => nodeColor(d))
     .attr('stroke-width', 1)
     .on('click', (event, d) => onNodeClick(event, d))
     .on('mouseenter', (event, d) => onNodeHover(event, d))
@@ -885,7 +881,8 @@ function initSearch() {
 
     results.classList.add('visible');
     results.innerHTML = matches.map((n, i) => {
-      const masterName = n.parent_id ? (S.nodeMap.get(n.parent_id)?.name || '—') : '祖师';
+      const masterNames = (S.mastersMap.get(n.id) || []).map(master => master.name);
+      const masterName = masterNames.length ? masterNames.join('、') : '祖师';
       return `<div class="search-item${i === activeIdx ? ' active' : ''}" data-id="${n.id}">
         <span>${n.name}</span>
         <span class="gen-badge">第${n.generation + 1}代</span>
@@ -967,7 +964,7 @@ function selectAndFocus(node) {
 function showInfoPanel(node) {
   const panel = document.getElementById('info-panel');
   const content = document.getElementById('info-content');
-  const master = node.parent_id ? S.nodeMap.get(node.parent_id) : null;
+  const masters = S.mastersMap.get(node.id) || [];
   const disciples = S.childrenMap.get(node.id) || [];
   const ancestors = findAncestors(node);
 
@@ -975,8 +972,8 @@ function showInfoPanel(node) {
     ? `<img class="avatar-large" src="${escapeHTML(node.avatar)}" alt="${escapeHTML(node.name)}" />`
     : `<div style="width:64px;height:64px;border-radius:50%;background:${nodeColor(node)};margin-bottom:12px;display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;border:2px solid var(--border);">${node.name.charAt(0)}</div>`;
 
-  const masterHTML = master
-    ? `<span class="master-link" data-id="${master.id}">${escapeHTML(master.name)}</span>`
+  const masterHTML = masters.length
+    ? masters.map(master => `<span class="master-link" data-id="${master.id}">${escapeHTML(master.name)}</span>`).join('')
     : '<span style="color:var(--text-dim);font-size:13px;">无（祖师）</span>';
 
   const disciplesHTML = disciples.length
@@ -1108,9 +1105,12 @@ function showToast(msg) {
 async function main() {
   try {
     // Load data
-    const res = await fetch('api/persons');
+    const res = await fetch('api/graph');
     if (!res.ok) throw new Error('数据加载失败');
-    const persons = await res.json();
+    const payload = await res.json();
+    const graph = payload?.data || payload;
+    const persons = Array.isArray(graph?.persons) ? graph.persons : [];
+    const relationships = Array.isArray(graph?.relationships) ? graph.relationships : [];
 
     if (!persons.length) {
       document.getElementById('loading').innerHTML =
@@ -1119,11 +1119,17 @@ async function main() {
     }
 
     // Process data
-    const result = processData(persons);
+    const result = processData(persons, relationships);
     S.nodes = result.nodes;
     S.links = result.links;
     S.nodeMap = result.nodeMap;
     S.childrenMap = result.childrenMap;
+    S.mastersMap = result.mastersMap;
+    const colorById = graph?.colorById || {};
+    S.nodeColors = new Map(persons.map(person => [
+      person.id,
+      colorById[person.id] || '#9F84EF'
+    ]));
     S.maxGeneration = result.maxGen;
 
     // Init graph

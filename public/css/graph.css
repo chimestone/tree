@@ -1,0 +1,93 @@
+body.graph-page { overflow: hidden; }
+
+#graph-shell {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 10%, rgba(159, 132, 239, .12), transparent 38%),
+    var(--bg);
+}
+
+#graph-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,.045) 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: .8;
+  pointer-events: none;
+}
+
+#graph-svg { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+#graph-svg .viewport { transform-origin: 0 0; }
+#graph-svg .link { fill: none; stroke: #8d83a8; stroke-width: 1.35; stroke-opacity: .56; marker-end: url(#arrow); transition: stroke .18s ease, stroke-width .18s ease, opacity .18s ease; }
+#graph-svg .link.highlight { stroke: var(--accent-strong); stroke-width: 2.6; stroke-opacity: .95; }
+#graph-svg .link.dim, #graph-svg .node.dim { opacity: .12; }
+#graph-svg .node { cursor: pointer; outline: none; }
+#graph-svg .node-hit { pointer-events: all; }
+#graph-svg .node circle { stroke: rgba(255,255,255,.55); stroke-width: 1.3; transition: r .18s ease, stroke .18s ease, stroke-width .18s ease, opacity .18s ease; }
+#graph-svg .node:hover circle { stroke: #fff; stroke-width: 2.4; }
+#graph-svg .node.selected circle { stroke: #f7d1dc; stroke-width: 3.1; filter: drop-shadow(0 0 10px rgba(247, 209, 220, .45)); }
+#graph-svg .node.ancestor circle { stroke: var(--accent-strong); stroke-width: 2.4; }
+#graph-svg .node.descendant circle { stroke: #72d3ae; stroke-width: 2.4; }
+#graph-svg .node text { fill: var(--text); font-size: 12px; text-anchor: middle; paint-order: stroke; stroke: #11101a; stroke-width: 4px; stroke-linejoin: round; pointer-events: none; }
+#graph-svg .node .generation-badge { fill: var(--text-dim); font-size: 10px; stroke-width: 3px; }
+
+.graph-chrome { position: fixed; z-index: 20; }
+.graph-brand { top: 22px; left: 24px; display: grid; gap: 2px; }
+.graph-brand strong { font-size: 16px; letter-spacing: .03em; }
+.graph-brand span { color: var(--text-dim); font-size: 12px; }
+
+#search-box { top: 20px; left: 50%; width: min(390px, calc(100vw - 150px)); transform: translateX(-50%); }
+#search-input { padding-right: 38px; background: rgba(30, 27, 42, .88); backdrop-filter: blur(12px); }
+#search-results { display: none; margin-top: 5px; overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); box-shadow: 0 15px 40px rgba(0,0,0,.3); }
+#search-results.visible { display: block; }
+.search-result { display: grid; grid-template-columns: 1fr auto; gap: 7px; width: 100%; padding: 10px 12px; border: 0; border-bottom: 1px solid rgba(255,255,255,.05); background: transparent; color: var(--text); text-align: left; }
+.search-result:last-child { border-bottom: 0; }
+.search-result:hover { background: var(--accent-soft); }
+.search-result small { color: var(--text-dim); }
+
+#graph-actions { top: 20px; right: 20px; display: flex; gap: 8px; }
+#graph-actions .button { background: rgba(30, 27, 42, .88); backdrop-filter: blur(12px); }
+
+#graph-status { left: 24px; bottom: 20px; color: var(--text-dim); font-size: 12px; }
+#legend { right: 22px; bottom: 20px; display: flex; gap: 12px; align-items: center; color: var(--text-dim); font-size: 12px; }
+.legend-item { display: inline-flex; gap: 6px; align-items: center; }
+.legend-dot { width: 10px; height: 10px; border: 1px solid rgba(255,255,255,.5); border-radius: 50%; }
+
+#info-panel { position: fixed; top: 0; right: 0; z-index: 40; width: min(380px, 93vw); height: 100vh; padding: 22px 20px 28px; overflow-y: auto; background: rgba(27, 24, 39, .98); border-left: 1px solid var(--border); box-shadow: -20px 0 50px rgba(0,0,0,.2); transform: translateX(102%); transition: transform .28s cubic-bezier(.16,1,.3,1); }
+#info-panel.open { transform: translateX(0); }
+#panel-close { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 9px; background: transparent; color: var(--text-dim); }
+#panel-close:hover { border-color: var(--accent); color: var(--text); background: var(--accent-soft); }
+#info-content { padding-top: 30px; }
+.person-heading { display: grid; grid-template-columns: 58px 1fr; gap: 13px; align-items: center; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+.person-avatar { display: grid; place-items: center; width: 58px; height: 58px; overflow: hidden; border: 1px solid rgba(255,255,255,.35); border-radius: 50%; color: #fff; font-size: 22px; font-weight: 700; }
+.person-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.person-heading h2 { margin: 0; font-size: 21px; line-height: 1.2; word-break: break-all; }
+.person-heading p { margin: 4px 0 0; color: var(--text-dim); font-size: 12px; }
+.panel-section { padding: 18px 0 0; }
+.panel-section h3 { margin: 0 0 8px; color: var(--text-dim); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+.panel-description { margin: 0; color: var(--text-soft); font-size: 13px; white-space: pre-wrap; }
+.relation-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.relation-chip { border: 1px solid var(--border); border-radius: 8px; padding: 6px 9px; background: rgba(255,255,255,.035); color: var(--text-soft); }
+.relation-chip:hover { border-color: var(--accent); color: var(--text); background: var(--accent-soft); }
+.panel-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.panel-stat { padding: 10px; border: 1px solid var(--border-soft); border-radius: 9px; background: rgba(255,255,255,.025); }
+.panel-stat strong { display: block; font-size: 18px; }
+.panel-stat span { color: var(--text-dim); font-size: 11px; }
+
+#loading { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: var(--bg); transition: opacity .25s ease; }
+#loading.hidden { opacity: 0; pointer-events: none; }
+.spinner { width: 34px; height: 34px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 640px) {
+  .graph-brand { top: 14px; left: 14px; }
+  .graph-brand strong { font-size: 14px; }
+  #search-box { top: 62px; left: 14px; width: calc(100vw - 28px); transform: none; }
+  #graph-actions { top: 12px; right: 12px; }
+  #graph-actions .button span { display: none; }
+  #graph-status { left: 14px; bottom: 14px; }
+  #legend { right: 14px; bottom: 14px; gap: 7px; }
+  #legend .legend-item:nth-child(2) { display: none; }
+}

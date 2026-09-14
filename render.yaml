@@ -4,8 +4,18 @@ services:
     env: node
     buildCommand: npm install
     startCommand: npm start
+    disk:
+      name: tree-system-data
+      mountPath: /app/data
+      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
       - key: SECRET
-        value: change-this-to-a-random-string
+        generateValue: true
+      - key: DB_FILE
+        value: /app/data/database.json
+      - key: INITIAL_ADMIN_USERNAME
+        sync: false
+      - key: INITIAL_ADMIN_PASSWORD
+        sync: false
