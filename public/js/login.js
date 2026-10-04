@@ -4,7 +4,10 @@
   const form = document.getElementById('login-form');
   const message = document.getElementById('login-message');
   const params = new URLSearchParams(window.location.search);
-  if (params.get('expired') === '1') {
+  if (params.get('passwordChanged') === '1') {
+    message.textContent = '密码已更新，原有登录已失效，请使用新密码重新登录。';
+    message.className = 'notice success';
+  } else if (params.get('expired') === '1') {
     message.textContent = '登录状态已过期，请重新登录。';
     message.className = 'notice error';
   }

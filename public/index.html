@@ -961,16 +961,41 @@ function selectAndFocus(node) {
 // ============================================================
 //  INFO PANEL
 // ============================================================
+function createDetailAvatar(node) {
+  const fallback = document.createElement('div');
+  fallback.className = 'avatar-large';
+  Object.assign(fallback.style, {
+    background: nodeColor(node), display: 'flex', alignItems: 'center',
+    justifyContent: 'center', fontSize: '28px', color: '#fff'
+  });
+  fallback.textContent = Array.from(node.name || '')[0] || '?';
+
+  let url;
+  try {
+    url = new URL(typeof node.avatar === 'string' ? node.avatar.trim() : '');
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return fallback;
+  } catch {
+    return fallback;
+  }
+
+  const image = document.createElement('img');
+  image.className = 'avatar-large';
+  image.alt = node.name || '';
+  image.referrerPolicy = 'no-referrer';
+  image.addEventListener('error', () => image.replaceWith(fallback), { once: true });
+  image.src = url.href;
+  return image;
+}
+
 function showInfoPanel(node) {
   const panel = document.getElementById('info-panel');
   const content = document.getElementById('info-content');
   const masters = S.mastersMap.get(node.id) || [];
   const disciples = S.childrenMap.get(node.id) || [];
-  const ancestors = findAncestors(node);
-
-  const avatarHTML = node.avatar
-    ? `<img class="avatar-large" src="${escapeHTML(node.avatar)}" alt="${escapeHTML(node.name)}" />`
-    : `<div style="width:64px;height:64px;border-radius:50%;background:${nodeColor(node)};margin-bottom:12px;display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;border:2px solid var(--border);">${node.name.charAt(0)}</div>`;
+  // A traversal returns an ancestor set, not a connected lineage path.
+  const ancestors = findAncestors(node).sort((a, b) =>
+    a.generation - b.generation || a.name.localeCompare(b.name, 'zh-CN') || a.id - b.id
+  );
 
   const masterHTML = masters.length
     ? masters.map(master => `<span class="master-link" data-id="${master.id}">${escapeHTML(master.name)}</span>`).join('')
@@ -983,7 +1008,7 @@ function showInfoPanel(node) {
     : '<span style="color:var(--text-dim);font-size:13px;">暂无徒弟</span>';
 
   const ancestorsHTML = ancestors.length
-    ? ancestors.map(a => `<span class="disciple-link" data-id="${a.id}" style="font-size:12px">${escapeHTML(a.name)}</span>`).join(' <span style="color:var(--text-dim)">←</span> ')
+    ? ancestors.map(a => `<span class="disciple-link" data-id="${a.id}" style="font-size:12px">${escapeHTML(a.name)}</span>`).join('')
     : '<span style="color:var(--text-dim);font-size:13px;">无（本人为祖师）</span>';
 
   const catBadge = node.category
@@ -991,13 +1016,12 @@ function showInfoPanel(node) {
     : '';
 
   content.innerHTML = `
-    ${avatarHTML}
     <h2>${escapeHTML(node.name)}${catBadge}</h2>
     <span class="gen-tag">第 ${node.generation + 1} 代</span>
     ${node.description ? `<p class="desc-text">${escapeHTML(node.description)}</p>` : ''}
 
     <div class="info-section">
-      <h3>师承路径</h3>
+      <h3>历代师承（${ancestors.length}人）</h3>
       <div>${ancestorsHTML}</div>
     </div>
 
@@ -1017,6 +1041,7 @@ function showInfoPanel(node) {
       <div class="stat-row"><span class="stat-label">直接徒弟</span><span class="stat-value">${node.discipleCount || 0}</span></div>
     </div>
   `;
+  content.prepend(createDetailAvatar(node));
 
   // Click handlers for master/disciple links
   content.querySelectorAll('.master-link, .disciple-link').forEach(el => {

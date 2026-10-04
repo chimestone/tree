@@ -213,6 +213,10 @@
       const result = await api.request('/api/account', { method: 'POST', body: JSON.stringify(body) });
       $('#account-username').value = '';
       $('#account-password').value = '';
+      if (result.requiresReauthentication) {
+        api.redirectToLogin(true);
+        return;
+      }
       setStatus('#account-status', `账号已更新：${result.username}`, 'success');
       api.showToast('账号设置已保存。', 'success');
       $('#admin-subtitle').textContent = `已登录：${result.username}`;

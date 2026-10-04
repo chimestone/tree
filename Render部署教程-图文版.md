@@ -1,61 +1,118 @@
 # Render 部署说明（v2 DAG）
 
-这份说明对应当前 `render.yaml`。部署前请先准备一个 Render Web Service 和持久磁盘；JSON 数据库不适合无持久化磁盘的临时实例。
+更新时间：2026-10-04。对应当前 `render.yaml` 和应用代码；本轮核对了文档与本地测试，没有实际部署 Render 或构建 Docker 镜像。
 
-## 1. 创建服务
+## 1. 项目与配置
 
-1. 将 `luna` 目录作为独立项目连接到 GitHub。
-2. 在 Render 选择 **New → Blueprint**，让 Render 读取 `render.yaml`。
-3. 确认服务类型为 Node Web Service，构建命令为 `npm install`，启动命令为 `npm start`。
-4. 确认持久磁盘挂载到 `/app/data`，容量按数据量调整。
+本机项目为 `D:\myWorkSpace\师徒树\tree`，GitHub 仓库为 [chimestone/tree](https://github.com/chimestone/tree)。仓库根目录包含 server.js、package.json、render.yaml，不应连接旧的 luna 目录。
 
-## 2. 配置环境变量
+使用 Blueprint 创建服务时，让 Render 读取仓库根目录的 render.yaml。已有服务应先确认其连接的仓库、分支和 Root Directory，避免把父目录或旧副本作为部署源。
 
-`render.yaml` 会让 Render 生成随机 `SECRET`。不要把 JWT 密钥复制到代码、截图或公开仓库中。
+当前配置：
 
-在 Render 的 Environment 中设置以下私密变量：
+| 项目 | 当前值 |
+| --- | --- |
+| 运行方式 | 原生 Node Web Service |
+| 构建命令 | npm install |
+| 启动命令 | npm start |
+| 持久磁盘 | tree-system-data，1 GB |
+| 挂载路径 | /app/data |
+| 数据库 | /app/data/database.json |
+| Node 版本 | 配置未锁定，应在部署环境明确设置并测试 |
+
+Render 持久磁盘需要付费服务，免费服务不能挂载。无持久磁盘时重启或重新部署会丢失本地文件改动；持久盘只有挂载目录中的文件能保留。参见 [Render 持久磁盘文档](https://render.com/docs/disks)。
+
+本地测试使用 Node 24.13.1。可通过服务环境变量 NODE_VERSION 明确部署版本，不能假定新旧服务默认版本相同；参见 [Render Node 版本设置](https://render.com/docs/node-version)。构建锁定安装、健康检查和版本统一尚属 TODO D4。
+
+## 2. 环境变量
 
 | 变量 | 用途 |
 | --- | --- |
-| `INITIAL_ADMIN_USERNAME` | 仅在持久盘还没有 `database.json` 时创建管理员 |
-| `INITIAL_ADMIN_PASSWORD` | 初始管理员密码，至少 8 位 |
-| `SECRET` | Blueprint 自动生成；也可以换成密码管理器生成的长随机值 |
-| `DB_FILE` | Blueprint 已指向 `/app/data/database.json` |
+| NODE_ENV | 当前配置为 production |
+| SECRET | Blueprint 生成随机 JWT 密钥；不要写入源码 |
+| DB_FILE | 当前配置为 /app/data/database.json |
+| INITIAL_ADMIN_USERNAME | 仅数据库文件不存在时创建管理员 |
+| INITIAL_ADMIN_PASSWORD | 初始管理员密码，至少 8 位 |
+| PORT | 使用 Render 注入的端口；应用缺省为 3000 |
 
-首次初始化完成后，不要依赖修改 `INITIAL_ADMIN_*` 来改变账号；请在管理后台使用“账号设置”。应用不会在每次启动时恢复或重置账号。
+INITIAL_ADMIN_* 需通过部署环境私密配置。已有数据库中的账号不会被这些变量覆盖；更改账号请使用管理后台。
 
-## 3. 部署后检查
+空持久盘第一次启动只创建账号和空图谱，不会自动导入仓库中的人物。测试登录、确认服务可启动后，再按下一节导入已有数据。
 
-打开服务 URL，确认：
+## 3. 导入已有图谱
 
-- 公开页面能显示 DAG、箭头和多师傅节点；
-- 管理入口要求登录；
-- 添加一条测试关系后刷新页面仍然存在；
-- 管理后台的“账号设置”可以保存；
-- 持久盘中存在 `database.json`。
+1. 确认目标是该服务的持久磁盘和 DB_FILE，不是构建目录。磁盘仅在运行时可用。
+2. 将来源数据库、目标当前数据库及已有备份分别下载并保存到外部归档，明确此次保留哪份管理员账号。
+3. 对来源副本运行下面的校验，再在维护窗口中停止所有写入进程。不要在正在运行的应用旁直接改数据库文件：服务持有内存副本，下一次写入可能覆盖手工替换。
+4. 通过已配置的受控文件传输方式把经过验证的数据放到目标持久盘的 database.json；保留原文件的独立副本。账号、密码哈希和图谱都会随整个数据库一起替换，不是仅导入人物。
+5. 如果来源为旧 trees 数据，下一次启动自动执行迁移；如果是 v2，直接读取。
+6. 更换部署 SECRET，让来源或旧部署的登录令牌失效，再启动并检查人员、关系及登录。SECRET 更换会要求所有管理员重新登录。
 
-## 4. 旧数据迁移
+Render 的 SSH/SCP 等传输方式见[官方文件传输说明](https://render.com/docs/disks#transferring-files)。本项目没有网页上传数据库接口，也没有自动合并两个数据库的导入功能。
 
-如果持久盘中的 `database.json` 是旧版嵌套 `trees` 格式，第一次启动会：
+### 在副本上校验
 
-1. 先创建且只创建一次 `database.v1.backup.json`；
-2. 校验并合并同名人员；
-3. 将树边转换为 `master_id → disciple_id` 关系；
-4. 写入 v2 DAG；
-5. 在后续写入时维护 `database.last-good.backup.json`。
+以下命令在项目根目录执行，把路径改成实际的数据库副本。它只读取副本，不保存或改写数据库。
 
-升级前仍建议从持久盘下载一份完整数据副本。不要手工删除备份文件，除非已经完成外部归档。
+```powershell
+$env:CHECK_DB_COPY = 'D:\backups\database-copy.json'
+node -e "const fs=require('fs');const s=require('./server');const raw=JSON.parse(fs.readFileSync(process.env.CHECK_DB_COPY,'utf8'));const d=raw.schemaVersion===2?raw:s.migrateLegacyDatabase(raw).database;s.validateDatabase(d);console.log('校验通过：'+d.persons.length+' 人，'+d.relationships.length+' 条关系');"
+Remove-Item Env:CHECK_DB_COPY
+```
 
-## 5. 常见问题
+如果在 production 环境运行，必须已有 SECRET，否则加载服务模块会先拒绝缺失的生产密钥。校验失败时不要替换目标数据，先保留副本并查明错误。
 
-### 服务启动后提示缺少 SECRET
+## 4. 迁移、备份与恢复
 
-生产环境必须设置 `SECRET`。重新保存环境变量并重新部署，不要在 `render.yaml` 中写入固定公开值。
+旧版嵌套 trees 数据首次启动时，应用先建立一次 database.v1.backup.json，校验合并同名人员与重复边，转换为 v2 DAG。原始备份存在时不会覆盖。
 
-### 每次部署后数据消失
+每次保存前会更新 database.last-good.backup.json，再保存新数据。它是滚动备份，同目录副本也不能应对整个磁盘丢失；应定期导出外部、带日期的独立备份。
 
-检查 Web Service 是否挂载了持久磁盘，以及 `DB_FILE` 是否为 `/app/data/database.json`。没有持久卷的实例重启后可能清空本地文件。
+恢复步骤：
+
+1. 找到正确版本的副本，在测试环境用上面的只读命令验证。迁移备份可能仍是旧 trees 格式，不要凭文件名判断。
+2. 确认恢复日期和会回退的人员、关系、账号信息；停止全部写入进程。
+3. 将故障现状另存为独立副本，保留用于排查。不要覆盖原始备份或唯一可用副本。
+4. 将选定副本放回实际 DB_FILE，并检查运行用户有读写权限。
+5. 轮换 SECRET，再启动服务，核对人员、关系及管理员登录；确认后才恢复写入。
+
+轮换 SECRET 是因为旧备份可能回退账号 tokenVersion 或密码，令先前撤销的 JWT 重新匹配版本。应用不会自动从备份恢复，也没有默认密码重置入口。本轮仅补充流程，完整故障恢复演练仍待 TODO D3。
+
+## 5. 部署后检查
+
+使用测试副本或测试服务验证写操作，不为验收随意更改真实账号或关系。
+
+- 公开图谱显示自然网络、小圆点和大小层次；无需常驻箭头或强制上下排列。
+- 同一人物有多位师傅时仍只有一个节点；详情“师傅”列出直接上游，“历代师承”列出去重的全部上游人物。
+- “历代师承”的排序不代表相邻人物有师徒关系；点击可跳到对应详情。
+- 头像为空、非法旧地址或加载失败时显示首字。
+- 管理数据写入需要登录；新增关系后刷新仍存在。
+- 修改密码后当前设备提示重新登录，其他设备下一次管理操作被拒绝；新密码可以重新登录。
+- 重新部署或重启后持久盘中的人员、关系和 tokenVersion 仍保留。
+- 窄屏控件、重复视图定位、草稿刷新等限制参见 [TODO](TODO.md)，不要宣称已全部验收。
+
+## 6. 常见问题
+
+### 缺少 SECRET，或缺少初始管理员变量
+
+生产环境必须有 SECRET；空库还需要 INITIAL_ADMIN_USERNAME 和 INITIAL_ADMIN_PASSWORD。已有库不会因为修改初始变量而重置账号。
+
+### 图谱为空
+
+确认 DB_FILE 的目标文件是否只是首次初始化的空数据库。仓库有数据不代表它已导入 /app/data。不要通过删除现有文件强制重建来“找回数据”。
+
+### 数据在重新部署后丢失
+
+检查真实数据库路径是否在持久磁盘下。没有持久盘的免费实例不适合作为本项目生产 JSON 数据库宿主。
+
+### 更新后要求重新登录
+
+R2 会拒绝升级前不带版本的令牌；改密码和更换 SECRET 也会撤销登录。图谱的公开访问不受影响。
+
+### 图谱无法加载，或头像打不开
+
+图谱依赖外部 D3 CDN；头像依赖 URL 对应的图片服务、网络及浏览器协议策略。检查控制台与网络请求，不要把 CDN 故障误判为数据库丢失。
 
 ### 忘记管理员密码
 
-不要通过源码补回固定密码。先备份数据，再按团队的安全流程恢复管理员账号或在受控环境中进行一次性密码重置。
+不要往源码补默认账号。先做外部备份，再安排受控的一次性账号恢复；目前没有独立密码重置工具。本轮没有更改真实管理员凭据或清理 Git 历史。

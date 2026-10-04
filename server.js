@@ -57,6 +57,18 @@ function normalizeOptionalText(value, fieldName) {
   return value.trim();
 }
 
+function normalizeAvatar(value) {
+  const avatar = normalizeOptionalText(value, 'avatar');
+  if (!avatar) return '';
+  try {
+    const url = new URL(avatar);
+    if (url.protocol === 'http:' || url.protocol === 'https:') return url.href;
+  } catch {
+    // Invalid URLs use the same readable error as unsupported protocols.
+  }
+  throw new DataError('INVALID_AVATAR_URL', '头像地址必须是有效的 HTTP 或 HTTPS URL，也可以留空。');
+}
+
 function parseId(value, fieldName = 'ID') {
   if (typeof value === 'number' && Number.isSafeInteger(value) && value > 0) return value;
   if (typeof value === 'string' && /^[1-9]\d*$/u.test(value)) {
@@ -141,6 +153,9 @@ function validateDatabase(database) {
     userIds.add(id);
     if (typeof user.username !== 'string' || !user.username.trim() || typeof user.password !== 'string' || !user.password) {
       throw new DataError('INVALID_DATABASE', `用户 ${id} 的账号记录不完整。`, 500);
+    }
+    if (user.tokenVersion !== undefined && (!Number.isSafeInteger(user.tokenVersion) || user.tokenVersion < 0)) {
+      throw new DataError('INVALID_DATABASE', `用户 ${id} 的 tokenVersion 必须是非负安全整数。`, 500);
     }
     if (usernames.has(user.username)) throw new DataError('INVALID_DATABASE', `用户名 ${user.username} 重复。`, 500);
     usernames.add(user.username);
@@ -455,7 +470,7 @@ function createInitialDatabase(options = {}) {
   }
   const database = {
     schemaVersion: SCHEMA_VERSION,
-    users: [{ id: 1, username: username.trim(), password: bcrypt.hashSync(password, 12) }],
+    users: [{ id: 1, username: username.trim(), password: bcrypt.hashSync(password, 12), tokenVersion: 0 }],
     persons: [],
     relationships: [],
     nextPersonId: 1,
@@ -603,6 +618,10 @@ function createService(options = {}) {
       const userId = parseId(payload.sub, '用户 ID');
       const user = currentDatabase().users.find(item => item.id === userId);
       if (!user) throw new DataError('AUTH_INVALID', '登录状态已失效，请重新登录。', 401);
+      // Missing versions are legacy JWTs; require a fresh login after upgrade.
+      if (!Number.isSafeInteger(payload.tokenVersion) || payload.tokenVersion !== (user.tokenVersion ?? 0)) {
+        throw new DataError('AUTH_INVALID', '登录状态已失效，请重新登录。', 401);
+      }
       req.authUser = user;
       return next();
     } catch (error) {
@@ -628,7 +647,7 @@ function createService(options = {}) {
     if (!user || !bcrypt.compareSync(password, user.password)) {
       throw new DataError('LOGIN_FAILED', '用户名或密码错误。', 401);
     }
-    const token = jwt.sign({ sub: String(user.id), username: user.username }, secret, { expiresIn: '24h' });
+    const token = jwt.sign({ sub: String(user.id), username: user.username, tokenVersion: user.tokenVersion ?? 0 }, secret, { expiresIn: '24h' });
     return sendOk(res, { token, username: user.username, expiresIn: 24 * 60 * 60 });
   }));
 
@@ -649,11 +668,14 @@ function createService(options = {}) {
     }
     if (body.newPassword !== undefined) {
       if (typeof body.newPassword !== 'string' || body.newPassword.length < 8) throw new DataError('WEAK_PASSWORD', '新密码至少需要 8 位。');
+      const tokenVersion = (user.tokenVersion ?? 0) + 1;
+      if (!Number.isSafeInteger(tokenVersion)) throw new DataError('TOKEN_VERSION_LIMIT', '登录版本已达上限，请联系维护人员。', 500);
       user.password = bcrypt.hashSync(body.newPassword, 12);
+      user.tokenVersion = tokenVersion;
     }
     if (body.username === undefined && body.newPassword === undefined) throw new DataError('EMPTY_UPDATE', '请至少填写用户名或新密码。');
     commit(next);
-    return sendOk(res, { username: user.username });
+    return sendOk(res, { username: user.username, requiresReauthentication: body.newPassword !== undefined });
   }));
 
   app.get('/api/graph', route((req, res) => sendOk(res, graphPayload(currentDatabase()))));
@@ -676,7 +698,7 @@ function createService(options = {}) {
       name,
       normalizedName,
       category: normalizeOptionalText(body.category, 'category'),
-      avatar: normalizeOptionalText(body.avatar, 'avatar'),
+      avatar: normalizeAvatar(body.avatar),
       description: normalizeOptionalText(body.description, 'description')
     };
     for (const masterId of masterIds) {
@@ -709,9 +731,10 @@ function createService(options = {}) {
       person.name = name;
       person.normalizedName = normalizedName;
     }
-    for (const field of ['category', 'avatar', 'description']) {
+    for (const field of ['category', 'description']) {
       if (body[field] !== undefined) person[field] = normalizeOptionalText(body[field], field);
     }
+    if (body.avatar !== undefined) person.avatar = normalizeAvatar(body.avatar);
 
     const masterIds = getMasterIdsFromBody(body);
     if (masterIds !== null) {

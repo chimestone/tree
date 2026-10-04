@@ -7,6 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const {
   createService,
@@ -213,6 +214,92 @@ test('HTTP API 支持多师傅、拒绝冲突、独立删除关系和不级联�
   assert.ok(afterDelete.persons.some(item => item.id === rootB.body.data.id));
   assert.ok(afterDelete.persons.some(item => item.id === child.body.data.id));
   assert.equal(afterDelete.relationships.length, 1);
+});
+
+test('头像新增和修改只接受空值或有效 HTTP/HTTPS URL，拒绝时不改变数据', async t => {
+  const { request } = await startHttpService(t);
+  const login = await request('/api/login', { method: 'POST', body: JSON.stringify({ username: 'tester', password: 'tester-password' }) });
+  const headers = { Authorization: `Bearer ${login.body.data.token}` };
+  const invalid = ['javascript:alert(1)', 'data:image/svg+xml,<svg/>', 'file:///tmp/avatar.png', '/avatar.png', 'not-a-url', 'x" onerror="alert(1)'];
+  for (const avatar of invalid) {
+    const result = await request('/api/persons', { method: 'POST', headers, body: JSON.stringify({ name: '非法头像测试', avatar }) });
+    assert.equal(result.response.status, 400);
+    assert.equal(result.body.error.code, 'INVALID_AVATAR_URL');
+  }
+  assert.equal((await request('/api/persons')).body.data.length, 0);
+
+  const created = await request('/api/persons', { method: 'POST', headers, body: JSON.stringify({ name: '头像测试', avatar: ' https://example.invalid/avatar.png ' }) });
+  assert.equal(created.response.status, 201);
+  assert.equal(created.body.data.avatar, 'https://example.invalid/avatar.png');
+  const id = created.body.data.id;
+  for (const avatar of invalid) {
+    const rejected = await request(`/api/persons/${id}`, { method: 'PUT', headers, body: JSON.stringify({ name: '不应保存的姓名', avatar }) });
+    assert.equal(rejected.response.status, 400);
+    assert.equal(rejected.body.error.code, 'INVALID_AVATAR_URL');
+  }
+  const unchanged = (await request(`/api/persons/${id}`)).body.data;
+  assert.equal(unchanged.name, '头像测试');
+  assert.equal(unchanged.avatar, 'https://example.invalid/avatar.png');
+  const httpAvatar = await request(`/api/persons/${id}`, { method: 'PUT', headers, body: JSON.stringify({ avatar: 'http://example.invalid/avatar.png' }) });
+  assert.equal(httpAvatar.response.status, 200);
+  for (const avatar of ['', '   ', null]) {
+    const cleared = await request(`/api/persons/${id}`, { method: 'PUT', headers, body: JSON.stringify({ avatar }) });
+    assert.equal(cleared.response.status, 200);
+    assert.equal(cleared.body.data.avatar, '');
+  }
+});
+
+test('改密码立即吊销旧令牌，旧数据库兼容，失败/改用户名不吊销，重启不恢复旧令牌', async t => {
+  const { service, databaseFile, request } = await startHttpService(t);
+  // Model an existing v2 account created before tokenVersion was introduced.
+  delete service.getDatabase().users[0].tokenVersion;
+  service.getDatabase().users.push({ ...service.getDatabase().users[0], id: 2, username: 'other-admin' });
+  validateDatabase(service.getDatabase());
+  const otherLogin = await request('/api/login', { method: 'POST', body: JSON.stringify({ username: 'other-admin', password: 'tester-password' }) });
+  const otherHeaders = { Authorization: `Bearer ${otherLogin.body.data.token}` };
+  const login = async password => request('/api/login', { method: 'POST', body: JSON.stringify({ username: 'tester', password }) });
+  const first = await login('tester-password');
+  const oldToken = first.body.data.token;
+  const headers = { Authorization: `Bearer ${oldToken}` };
+  assert.equal(jwt.decode(oldToken).tokenVersion, 0);
+  const secondToken = (await login('tester-password')).body.data.token;
+
+  const legacyToken = jwt.sign({ sub: '1', username: 'tester' }, 'integration-test-secret', { expiresIn: '24h' });
+  assert.equal((await request('/api/me', { headers: { Authorization: `Bearer ${legacyToken}` } })).response.status, 401);
+
+  const weak = await request('/api/account', { method: 'POST', headers, body: JSON.stringify({ username: 'must-not-save', newPassword: 'short' }) });
+  assert.equal(weak.response.status, 400);
+  assert.equal((await request('/api/me', { headers })).body.data.username, 'tester');
+  const renamed = await request('/api/account', { method: 'POST', headers, body: JSON.stringify({ username: 'tester-renamed' }) });
+  assert.equal(renamed.body.data.requiresReauthentication, false);
+  assert.equal((await request('/api/me', { headers })).body.data.username, 'tester-renamed');
+  await request('/api/account', { method: 'POST', headers, body: JSON.stringify({ username: 'tester' }) });
+
+  const changed = await request('/api/account', { method: 'POST', headers, body: JSON.stringify({ newPassword: 'updated-password' }) });
+  assert.equal(changed.response.status, 200);
+  assert.equal(changed.body.data.requiresReauthentication, true);
+  for (const token of [oldToken, secondToken]) {
+    const staleHeaders = { Authorization: `Bearer ${token}` };
+    assert.equal((await request('/api/me', { headers: staleHeaders })).response.status, 401);
+    assert.equal((await request('/api/persons', { method: 'POST', headers: staleHeaders, body: JSON.stringify({ name: '不应写入' }) })).response.status, 401);
+    assert.equal((await request('/api/account', { method: 'POST', headers: staleHeaders, body: JSON.stringify({ newPassword: 'attacker-password' }) })).response.status, 401);
+  }
+  assert.equal((await login('tester-password')).response.status, 401);
+  assert.equal((await request('/api/me', { headers: otherHeaders })).response.status, 200);
+  const fresh = await login('updated-password');
+  assert.equal(fresh.response.status, 200);
+  assert.equal(jwt.decode(fresh.body.data.token).tokenVersion, 1);
+  assert.equal((await request('/api/me', { headers: { Authorization: `Bearer ${fresh.body.data.token}` } })).response.status, 200);
+  assert.equal((await request('/api/persons')).body.data.length, 0);
+
+  const restarted = createService({ databaseFile, secret: 'integration-test-secret' });
+  restarted.initialize();
+  assert.equal(restarted.getDatabase().users[0].tokenVersion, 1);
+  const httpServer = await new Promise(resolve => { const server = restarted.app.listen(0, '127.0.0.1', () => resolve(server)); });
+  t.after(() => new Promise(resolve => httpServer.close(resolve)));
+  const base = `http://127.0.0.1:${httpServer.address().port}`;
+  assert.equal((await fetch(`${base}/api/me`, { headers })).status, 401);
+  assert.equal((await fetch(`${base}/api/me`, { headers: { Authorization: `Bearer ${fresh.body.data.token}` } })).status, 200);
 });
 
 test('初始管理员只在空库创建，修改账号后重启不会恢复旧账号', async t => {

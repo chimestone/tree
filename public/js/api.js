@@ -7,11 +7,11 @@
     return window.localStorage.getItem(TOKEN_KEY) || '';
   }
 
-  function redirectToLogin() {
+  function redirectToLogin(passwordChanged = false) {
     window.localStorage.removeItem(TOKEN_KEY);
     const next = `${window.location.pathname}${window.location.search}`;
     if (!window.location.pathname.endsWith('/login.html')) {
-      window.location.href = `/login.html?next=${encodeURIComponent(next)}`;
+      window.location.href = `/login.html?next=${encodeURIComponent(next)}${passwordChanged ? '&passwordChanged=1' : ''}`;
     }
   }
 
