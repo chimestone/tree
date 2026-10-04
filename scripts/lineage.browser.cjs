@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const { calculateGrades } = require('../server');
 
 (async () => {
   const browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || 'chrome', headless: true });
@@ -61,7 +62,32 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await expectAncestors([]);
     assert.match(await ancestors.textContent(), /本人为祖师/);
     assert.deepEqual(await disciples.locator('[data-id]').allTextContents(), ['师傅甲', '师傅乙']);
+    const database = JSON.parse(fs.readFileSync(path.join(__dirname, '../database.json'), 'utf8'));
+    const grades = calculateGrades(database);
+    const persons = database.persons.map(person => ({ ...person, grade: grades[person.id] }));
+    const rendered = await page.evaluate(({ persons, relationships }) => {
+      const data = processData(persons, relationships);
+      S.nodes = data.nodes;
+      S.nodeMap = data.nodeMap;
+      S.mastersMap = data.mastersMap;
+      S.childrenMap = data.childrenMap;
+      for (const node of S.nodes) {
+        showInfoPanel(node);
+        if (document.querySelector('.gen-tag').textContent !== `${node.grade}级`) throw new Error('Wrong grade: ' + node.name);
+      }
+      initSearch();
+      return S.nodes.length;
+    }, { persons, relationships: database.relationships });
+    assert.equal(rendered, persons.length);
+    await page.locator('#search-input').fill('韩轩');
+    const result = page.locator('#search-results .search-item[data-id]').filter({ hasText: '韩轩' });
+    await result.waitFor({ state: 'visible' });
+    assert.equal(await result.locator('.gen-badge').textContent(), '24级');
+    await result.click();
+    assert.equal(await page.locator('#info-content > h2').textContent(), '韩轩');
+    assert.equal(await page.locator('#info-content > .gen-tag').textContent(), '24级');
     console.log('PASS: lineage list shows no invented edges; chain, multiple masters, shared ancestors, root and click targets are correct.');
+    console.log(`PASS: all ${rendered} people display grades; Han Xuan search and detail show 24级.`);
   } finally {
     await browser.close();
   }

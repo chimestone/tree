@@ -528,6 +528,10 @@ function nodeColor(d) {
   return S.nodeColors.get(d.id) || '#9F84EF';
 }
 
+function gradeLabel(node) {
+  return Number.isSafeInteger(node.grade) ? `${node.grade}级` : '级别未设置';
+}
+
 function findAncestors(node) {
   const ancestors = [];
   const visited = new Set([node.id]);
@@ -885,7 +889,7 @@ function initSearch() {
       const masterName = masterNames.length ? masterNames.join('、') : '祖师';
       return `<div class="search-item${i === activeIdx ? ' active' : ''}" data-id="${n.id}">
         <span>${n.name}</span>
-        <span class="gen-badge">第${n.generation + 1}代</span>
+        <span class="gen-badge">${gradeLabel(n)}</span>
         <span class="master-name">师：${masterName}</span>
       </div>`;
     }).join('');
@@ -1017,7 +1021,7 @@ function showInfoPanel(node) {
 
   content.innerHTML = `
     <h2>${escapeHTML(node.name)}${catBadge}</h2>
-    <span class="gen-tag">第 ${node.generation + 1} 代</span>
+    <span class="gen-tag">${gradeLabel(node)}</span>
     ${node.description ? `<p class="desc-text">${escapeHTML(node.description)}</p>` : ''}
 
     <div class="info-section">

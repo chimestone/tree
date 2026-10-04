@@ -38,6 +38,11 @@
 
   function byId(value) { return state.personById.get(Number(value)); }
 
+  function gradeLabel(person) {
+    const grade = state.graph.gradeById?.[person.id] ?? person.grade;
+    return Number.isSafeInteger(grade) ? `${grade}级` : '级别未设置';
+  }
+
   function makeIndexes() {
     for (const person of state.graph.persons) {
       state.personById.set(person.id, person);
@@ -132,9 +137,9 @@
       const label = svgElement('text', { y: position.radius + 17 });
       label.textContent = person.name;
       const badge = svgElement('text', { class: 'generation-badge', y: position.radius + 31 });
-      badge.textContent = `第 ${state.graph.generationById[person.id] || 1} 代`;
+      badge.textContent = gradeLabel(person);
       const title = svgElement('title');
-      title.textContent = `${person.name}，第 ${state.graph.generationById[person.id] || 1} 代`;
+      title.textContent = `${person.name}，${gradeLabel(person)}`;
       group.append(hitArea, circle, letter, label, badge, title);
       group.addEventListener('click', event => {
         event.stopPropagation();
@@ -198,7 +203,7 @@
     panelContent.innerHTML = `
       <div class="person-heading">
         <div class="person-avatar" style="background:${api.escapeHtml(state.graph.colorById[person.id] || state.graph.rootColor)}">${avatar}</div>
-        <div><h2>${api.escapeHtml(person.name)}</h2><p>${api.escapeHtml(person.category || '未分类')} · 第 ${state.graph.generationById[person.id] || 1} 代</p></div>
+        <div><h2>${api.escapeHtml(person.name)}</h2><p>${api.escapeHtml(person.category || '未分类')} · ${gradeLabel(person)}</p></div>
       </div>
       <section class="panel-section"><h3>简介</h3><p class="panel-description">${api.escapeHtml(person.description || '暂无简介')}</p></section>
       <section class="panel-section"><h3>师傅（上游，可多位）</h3><div class="relation-list">${chips(masters)}</div></section>
@@ -304,7 +309,7 @@
     }
     const results = state.graph.persons.filter(person => person.name.toLocaleLowerCase('zh-CN').includes(query)).slice(0, 12);
     searchResults.innerHTML = results.length
-      ? results.map(person => `<button class="search-result" data-search-id="${person.id}"><span>${api.escapeHtml(person.name)}</span><small>第 ${state.graph.generationById[person.id] || 1} 代</small></button>`).join('')
+      ? results.map(person => `<button class="search-result" data-search-id="${person.id}"><span>${api.escapeHtml(person.name)}</span><small>${gradeLabel(person)}</small></button>`).join('')
       : '<div class="empty-state">没有找到匹配的人物</div>';
     searchResults.classList.add('visible');
     searchResults.querySelectorAll('[data-search-id]').forEach(button => button.addEventListener('click', () => {

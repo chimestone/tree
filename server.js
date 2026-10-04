@@ -13,6 +13,9 @@ const DEFAULT_DB_FILE = path.join(APP_DIR, 'database.json');
 const SCHEMA_VERSION = 2;
 const ROOT_COLOR = '#9F84EF';
 const LEAF_COLOR = '#44336B';
+const GRADE_ANCHOR_NAME = '韩轩';
+const GRADE_ANCHOR_VALUE = 24;
+const DEFAULT_FIRST_GRADE = 20;
 
 class DataError extends Error {
   constructor(code, message, status = 400, details) {
@@ -543,13 +546,26 @@ function getMasterIdsFromBody(body, fieldName = 'master_ids') {
   return null;
 }
 
+function calculateGrades(database, generations = calculateGenerations(database)) {
+  const anchor = database.persons.find(person => person.name === GRADE_ANCHOR_NAME);
+  const offset = anchor ? GRADE_ANCHOR_VALUE - generations[anchor.id] : DEFAULT_FIRST_GRADE - 1;
+  return Object.fromEntries(database.persons.map(person => [person.id, generations[person.id] + offset]));
+}
+
+function personsWithGrades(database) {
+  const grades = calculateGrades(database);
+  return database.persons.map(person => ({ ...clone(person), grade: grades[person.id] }));
+}
+
 function graphPayload(database) {
   const generations = calculateGenerations(database);
+  const grades = calculateGrades(database, generations);
   const colors = computeColors(database);
   return {
-    persons: clone(database.persons),
+    persons: database.persons.map(person => ({ ...clone(person), grade: grades[person.id] })),
     relationships: clone(database.relationships),
     generationById: generations,
+    gradeById: grades,
     colorById: colors,
     rootColor: ROOT_COLOR,
     leafColor: LEAF_COLOR
@@ -583,6 +599,7 @@ function personDetail(database, id) {
     ancestor_ids: [...ancestors],
     descendant_ids: [...descendants],
     generation: generationById[id],
+    grade: calculateGrades(database, generationById)[id],
     color: colors[id]
   };
 }
@@ -679,7 +696,7 @@ function createService(options = {}) {
   }));
 
   app.get('/api/graph', route((req, res) => sendOk(res, graphPayload(currentDatabase()))));
-  app.get('/api/persons', route((req, res) => sendOk(res, clone(currentDatabase().persons))));
+  app.get('/api/persons', route((req, res) => sendOk(res, personsWithGrades(currentDatabase()))));
   app.get('/api/persons/:id', route((req, res) => sendOk(res, personDetail(currentDatabase(), parseId(req.params.id, '人员 ID')))));
   app.get('/api/relationships', route((req, res) => sendOk(res, clone(currentDatabase().relationships))));
 
@@ -712,7 +729,7 @@ function createService(options = {}) {
       next.nextRelationshipId += 1;
     }
     commit(next);
-    return sendOk(res, person, 201);
+    return sendOk(res, { ...person, grade: calculateGrades(next)[id] }, 201);
   }));
 
   app.put('/api/persons/:id', auth, route((req, res) => {
@@ -874,6 +891,7 @@ module.exports = {
   normalizeName,
   normalizeDisplayName,
   calculateGenerations,
+  calculateGrades,
   computeColors,
   findCycle,
   isReachable,

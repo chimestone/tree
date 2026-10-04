@@ -16,6 +16,7 @@ const {
   validateDatabase,
   normalizeName,
   calculateGenerations,
+  calculateGrades,
   computeColors,
   ROOT_COLOR,
   LEAF_COLOR,
@@ -172,6 +173,30 @@ test('多师傅代数取最长路径，颜色按根叶距离形成明显渐变',
   assert.equal(computeColors(chain)[2], '#725CAD');
 });
 
+test('级别以韩轩24级为基准换算全部人员，保留内部层级和颜色', () => {
+  const actual = migrateLegacyDatabase(JSON.parse(fs.readFileSync(path.join(__dirname, '../database.v1.backup.json'), 'utf8'))).database;
+  const anchor = actual.persons.find(person => person.name === '韩轩');
+  const generations = calculateGenerations(actual);
+  const grades = calculateGrades(actual);
+  assert.equal(generations[anchor.id], 5);
+  assert.equal(grades[anchor.id], 24);
+  assert.deepEqual([...new Set(Object.values(grades))].sort((a, b) => a - b), [20, 21, 22, 23, 24, 25]);
+  for (const person of actual.persons) assert.equal(grades[person.id], generations[person.id] + 19);
+
+  const chain = database([person(1, '师傅'), person(2, '韩轩'), person(3, '徒弟')], [
+    { id: 1, master_id: 1, disciple_id: 2 }, { id: 2, master_id: 2, disciple_id: 3 }
+  ]);
+  const original = JSON.stringify(chain);
+  assert.deepEqual(calculateGrades(chain), { 1: 23, 2: 24, 3: 25 });
+  assert.equal(JSON.stringify(chain), original, 'grade calculation must not overwrite stored person or account data');
+  chain.persons.push(person(4, '更早师傅'));
+  chain.relationships.push({ id: 3, master_id: 4, disciple_id: 1 });
+  chain.nextPersonId = 5;
+  chain.nextRelationshipId = 4;
+  assert.equal(calculateGrades(chain)[2], 24, 'anchor stays 24 when upstream nodes expand');
+  assert.equal(calculateGrades(chain)[4], 22);
+});
+
 test('HTTP API 支持多师傅、拒绝冲突、独立删除关系和不级联删除人员', async t => {
   const { request } = await startHttpService(t);
   const login = await request('/api/login', { method: 'POST', body: JSON.stringify({ username: 'tester', password: 'tester-password' }) });
@@ -191,6 +216,10 @@ test('HTTP API 支持多师傅、拒绝冲突、独立删除关系和不级联�
   assert.equal(graph.body.data.persons.filter(item => item.name === '共同徒弟').length, 1);
   assert.equal(graph.body.data.relationships.filter(item => item.disciple_id === child.body.data.id).length, 2);
   assert.equal(graph.body.data.generationById[child.body.data.id], 2);
+  assert.equal(graph.body.data.gradeById[child.body.data.id], 21);
+  assert.equal(graph.body.data.persons.find(person => person.id === child.body.data.id).grade, 21);
+  assert.equal((await request(`/api/persons/${child.body.data.id}`)).body.data.grade, 21);
+  assert.equal((await request('/api/persons')).body.data.find(person => person.id === child.body.data.id).grade, 21);
 
   const duplicateName = await create(' 根甲 ');
   assert.equal(duplicateName.response.status, 409);
