@@ -7,6 +7,7 @@
 以下命令均在包含 `package.json`、`server.js` 和 `render.yaml` 的仓库根目录执行。
 
 - [部署说明](Render部署教程-图文版.md)：Render、数据导入与部署检查。
+- [Ubuntu 云服务器部署](deploy/README.md)：独立运行数据库、服务管理与 `/tree/` 访问。
 - [头像安全教学](docs/R1-avatar-safety.md)：属性注入与 DOM 渲染。
 - [登录认证教学](docs/R2-session-version.md)：改密码时撤销旧登录。
 - [师承关系教学](docs/R3-lineage-list.md)：上游人物列表与真实路径的区别。

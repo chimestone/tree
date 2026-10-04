@@ -864,7 +864,7 @@ const app = defaultService.app;
 function startServer() {
   const port = Number(process.env.PORT || 3000);
   const result = defaultService.initialize();
-  const server = app.listen(port, () => {
+  const server = app.listen(port, process.env.HOST || '0.0.0.0', () => {
     console.log(`服务器运行在 http://localhost:${port}`);
     console.log(`存储模式：DAG（${result.database.persons.length} 人、${result.database.relationships.length} 条关系）`);
   });

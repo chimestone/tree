@@ -28,9 +28,7 @@
         })
       });
       window.localStorage.setItem(api.TOKEN_KEY, result.token);
-      const next = params.get('next');
-      const safeNext = next && next.startsWith('/') && !next.startsWith('//') ? next : '/admin.html';
-      window.location.href = safeNext;
+      window.location.href = api.safeNext(params.get('next'));
     } catch (error) {
       message.textContent = error.message;
       message.className = 'notice error';

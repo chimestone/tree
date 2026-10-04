@@ -1,0 +1,22 @@
+[Unit]
+Description=Lineage graph web service
+After=network.target
+
+[Service]
+Type=simple
+User=treeapp
+Group=treeapp
+WorkingDirectory=/opt/tree-system
+EnvironmentFile=/etc/tree-system.env
+ExecStart=/usr/local/bin/node /opt/tree-system/server.js
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/tree-system
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

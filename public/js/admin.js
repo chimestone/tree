@@ -251,6 +251,6 @@
   $('#relationship-form').addEventListener('submit', addRelationship);
   $('#account-form').addEventListener('submit', saveAccount);
   $('#person-filter').addEventListener('input', renderPersonTable);
-  $('#logout').addEventListener('click', () => { window.localStorage.removeItem(api.TOKEN_KEY); window.location.href = '/login.html'; });
+  $('#logout').addEventListener('click', () => api.redirectToLogin());
   init();
 }());
