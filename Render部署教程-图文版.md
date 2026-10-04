@@ -1,10 +1,10 @@
 # Render 部署说明（v2 DAG）
 
-更新时间：2026-10-04。对应当前 `render.yaml` 和应用代码；本轮核对了文档与本地测试，没有实际部署 Render 或构建 Docker 镜像。
+本说明对应仓库中的 `render.yaml`，介绍服务配置、数据导入与备份恢复。
 
 ## 1. 项目与配置
 
-本机项目为 `D:\myWorkSpace\师徒树\tree`，GitHub 仓库为 [chimestone/tree](https://github.com/chimestone/tree)。仓库根目录包含 server.js、package.json、render.yaml，不应连接旧的 luna 目录。
+GitHub 仓库为 [chimestone/tree](https://github.com/chimestone/tree)。仓库根目录包含 server.js、package.json 和 render.yaml。
 
 使用 Blueprint 创建服务时，让 Render 读取仓库根目录的 render.yaml。已有服务应先确认其连接的仓库、分支和 Root Directory，避免把父目录或旧副本作为部署源。
 
@@ -22,7 +22,7 @@
 
 Render 持久磁盘需要付费服务，免费服务不能挂载。无持久磁盘时重启或重新部署会丢失本地文件改动；持久盘只有挂载目录中的文件能保留。参见 [Render 持久磁盘文档](https://render.com/docs/disks)。
 
-本地测试使用 Node 24.13.1。可通过服务环境变量 NODE_VERSION 明确部署版本，不能假定新旧服务默认版本相同；参见 [Render Node 版本设置](https://render.com/docs/node-version)。构建锁定安装、健康检查和版本统一尚属 TODO D4。
+建议使用 Node 24 LTS，通过服务环境变量 NODE_VERSION 指定版本；参见 [Render Node 版本设置](https://render.com/docs/node-version)。
 
 ## 2. 环境变量
 
@@ -76,7 +76,7 @@ Remove-Item Env:CHECK_DB_COPY
 4. 将选定副本放回实际 DB_FILE，并检查运行用户有读写权限。
 5. 轮换 SECRET，再启动服务，核对人员、关系及管理员登录；确认后才恢复写入。
 
-轮换 SECRET 是因为旧备份可能回退账号 tokenVersion 或密码，令先前撤销的 JWT 重新匹配版本。应用不会自动从备份恢复，也没有默认密码重置入口。本轮仅补充流程，完整故障恢复演练仍待 TODO D3。
+旧备份可能回退账号 tokenVersion 或密码，恢复时轮换 SECRET 可避免旧令牌重新获得权限。应用不会自动从备份恢复，也没有默认密码重置入口。
 
 ## 5. 部署后检查
 
@@ -89,7 +89,6 @@ Remove-Item Env:CHECK_DB_COPY
 - 管理数据写入需要登录；新增关系后刷新仍存在。
 - 修改密码后当前设备提示重新登录，其他设备下一次管理操作被拒绝；新密码可以重新登录。
 - 重新部署或重启后持久盘中的人员、关系和 tokenVersion 仍保留。
-- 窄屏控件、重复视图定位、草稿刷新等限制参见 [TODO](TODO.md)，不要宣称已全部验收。
 
 ## 6. 常见问题
 
@@ -107,7 +106,7 @@ Remove-Item Env:CHECK_DB_COPY
 
 ### 更新后要求重新登录
 
-R2 会拒绝升级前不带版本的令牌；改密码和更换 SECRET 也会撤销登录。图谱的公开访问不受影响。
+升级前不带版本的令牌需要重新登录；改密码和更换 SECRET 也会撤销登录。图谱的公开访问不受影响。
 
 ### 图谱无法加载，或头像打不开
 
@@ -115,4 +114,4 @@ R2 会拒绝升级前不带版本的令牌；改密码和更换 SECRET 也会撤
 
 ### 忘记管理员密码
 
-不要往源码补默认账号。先做外部备份，再安排受控的一次性账号恢复；目前没有独立密码重置工具。本轮没有更改真实管理员凭据或清理 Git 历史。
+先做外部备份，再安排受控的一次性账号恢复；不要往源码补默认账号。
