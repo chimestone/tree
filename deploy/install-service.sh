@@ -14,8 +14,10 @@ if [[ ! -f /etc/tree-system.env ]]; then
     unset secret
 fi
 chmod 600 /etc/tree-system.env
+umask 022
 cd /opt/tree-system
 npm ci --omit=dev --no-audit --no-fund
+chmod -R u=rwX,go=rX /opt/tree-system/node_modules
 install -m 644 deploy/tree.service /etc/systemd/system/tree.service
 install -m 644 deploy/tree.nginx.conf /etc/nginx/sites-available/tree
 nginx -t
@@ -25,7 +27,8 @@ if ! nginx -t; then
     exit 1
 fi
 systemctl daemon-reload
-systemctl enable --now tree
+systemctl enable tree
+systemctl restart tree
 systemctl reload nginx
 systemctl is-active tree nginx
 curl --fail --silent --retry 5 --retry-connrefused --retry-delay 1 --output /dev/null http://127.0.0.1:3145/api/graph
